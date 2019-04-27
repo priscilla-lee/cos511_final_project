@@ -1,0 +1,36 @@
+body {
+  font-family: sans-serif;
+  font-size: 20;
+  font-weight: bold;
+}
+
+img {
+  width: 300;
+}
+
+canvas {
+  width: 600;
+  height: 50;
+  border: 1px solid #000000;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#title {
+  margin-top: 50;
+}
+
+#gameover {
+  position: absolute;
+  display: none;
+  font-weight: bold;
+  font-size: 100;
+}
+
+#userScore, #learnerScore {
+  font-size: 30;
+}
