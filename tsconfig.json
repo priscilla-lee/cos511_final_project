@@ -3,8 +3,8 @@
         "outFile": "compiled.js"
     },
     "files": [
-        "project.ts",
         "progress_bar.ts",
-        "learner.ts"
+        "learner.ts",
+        "project.ts"
     ]
 }

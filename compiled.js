@@ -1,80 +1,78 @@
-var Learner = /** @class */ (function () {
-    function Learner() {
-        actions = [];
-        predictions = [];
-    }
-    Learner.prototype.addAction = function (action) {
-        actions.push(action);
-    };
-    Learner.prototype.predict = function () {
-        p = 1;
-        if (Math.random() < 0.5) {
-            p = -1;
-        }
-        predictions.push(p);
-        return p;
-    };
-    return Learner;
-}());
 var ProgressBar = /** @class */ (function () {
-    function ProgressBar(canvas) {
-        canvas = document.getElementById("canvas");
+    function ProgressBar() {
+        var canvas = document.getElementById("canvas");
         canvas.height = 100;
         canvas.width = 200;
         // Draw center line
-        ctx = canvas.getContext("2d");
+        this.ctx = canvas.getContext("2d");
         this.drawCenterLine();
-        bar = 100;
+        this.bar = 100;
     }
     ProgressBar.prototype.drawCenterLine = function () {
-        ctx.lineWidth = 0.5;
-        ctx.moveTo(100.5, 0);
-        ctx.lineTo(100.5, 100);
-        ctx.stroke();
+        this.ctx.lineWidth = 0.5;
+        this.ctx.moveTo(100.5, 0);
+        this.ctx.lineTo(100.5, 100);
+        this.ctx.stroke();
     };
     ProgressBar.prototype.userWins = function () {
-        bar = bar - 10;
-        if (bar < 100) {
-            ctx.fillStyle = "blue";
+        this.bar = this.bar - 10;
+        if (this.bar < 100) {
+            this.ctx.fillStyle = "blue";
         }
         else {
-            ctx.fillStyle = "white";
+            this.ctx.fillStyle = "white";
         }
-        ctx.fillRect(bar, 0, 10, 100);
+        this.ctx.fillRect(this.bar, 0, 10, 100);
         this.drawCenterLine();
     };
     ProgressBar.prototype.learnerWins = function () {
-        bar = bar + 10;
-        if (bar > 100) {
-            ctx.fillStyle = "red";
+        this.bar = this.bar + 10;
+        if (this.bar > 100) {
+            this.ctx.fillStyle = "red";
         }
         else {
-            ctx.fillStyle = "white";
+            this.ctx.fillStyle = "white";
         }
-        ctx.fillRect(bar - 10, 0, 10, 100);
+        this.ctx.fillRect(this.bar - 10, 0, 10, 100);
         this.drawCenterLine();
     };
     return ProgressBar;
 }());
+var Learner = /** @class */ (function () {
+    function Learner() {
+        this.actions = [];
+        this.predictions = [];
+    }
+    Learner.prototype.addAction = function (action) {
+        this.actions.push(action);
+    };
+    Learner.prototype.predict = function () {
+        var p = 1;
+        if (Math.random() < 0.5) {
+            p = -1;
+        }
+        this.predictions.push(p);
+        return p;
+    };
+    return Learner;
+}());
 // HTML document elements
-uPenny = document.getElementById("userPenny");
-lPenny = document.getElementById("learnerPenny");
-uScore = document.getElementById("userScore");
-lScore = document.getElementById("learnerScore");
-gameover = document.getElementById("gameover");
+var uPenny = document.getElementById("userPenny");
+var lPenny = document.getElementById("learnerPenny");
+var uScore = document.getElementById("userScore");
+var lScore = document.getElementById("learnerScore");
+var gameover = document.getElementById("gameover");
 // Create learner and set scores to 0
-Learner;
-l = new Learner();
-userScore = 0;
-learnerScore = 0;
+var l = new Learner();
+var userScore = 0;
+var learnerScore = 0;
 // Display dummy pennies and starting progress bar
-uPenny.src = "heads_dummy.jpg";
-lPenny.src = "tails_dummy.jpg";
-ProgressBar;
-pb = new ProgressBar();
+uPenny.setAttribute("src", "heads_dummy.jpg");
+lPenny.setAttribute("src", "tails_dummy.jpg");
+var pb = new ProgressBar();
 window.onkeydown = function (e) {
     // Get keypress
-    action: number = 1;
+    var action = 1;
     if (e.keyCode == 38) { // Up arrow
         action = 1;
     }
@@ -86,19 +84,19 @@ window.onkeydown = function (e) {
     }
     // Add user action, get learner prediction
     l.addAction(action);
-    prediction = l.predict();
+    var prediction = l.predict();
     // Display pennies
     if (action == 1) {
-        uPenny.src = "heads.jpg";
+        uPenny.setAttribute("src", "heads.jpg");
     }
     else {
-        uPenny.src = "tails.jpg";
+        uPenny.setAttribute("src", "tails.jpg");
     }
     if (prediction == 1) {
-        lPenny.src = "heads.jpg";
+        lPenny.setAttribute("src", "heads.jpg");
     }
     else {
-        lPenny.src = "tails.jpg";
+        lPenny.setAttribute("src", "tails.jpg");
     }
     // Display a score
     if (prediction == action) {
@@ -127,65 +125,7 @@ window.onkeydown = function (e) {
         }
         gameover.style.display = "block";
         window.onkeydown = function (e) { };
-        uPenny.src = "heads_dummy.jpg";
-        lPenny.src = "tails_dummy.jpg";
+        uPenny.setAttribute("src", "heads_dummy.jpg");
+        lPenny.setAttribute("src", "tails_dummy.jpg");
     }
 };
-var ProgressBar = /** @class */ (function () {
-    function ProgressBar(canvas) {
-        canvas = document.getElementById("canvas");
-        canvas.height = 100;
-        canvas.width = 200;
-        // Draw center line
-        ctx = canvas.getContext("2d");
-        this.drawCenterLine();
-        bar = 100;
-    }
-    ProgressBar.prototype.drawCenterLine = function () {
-        ctx.lineWidth = 0.5;
-        ctx.moveTo(100.5, 0);
-        ctx.lineTo(100.5, 100);
-        ctx.stroke();
-    };
-    ProgressBar.prototype.userWins = function () {
-        bar = bar - 10;
-        if (bar < 100) {
-            ctx.fillStyle = "blue";
-        }
-        else {
-            ctx.fillStyle = "white";
-        }
-        ctx.fillRect(bar, 0, 10, 100);
-        this.drawCenterLine();
-    };
-    ProgressBar.prototype.learnerWins = function () {
-        bar = bar + 10;
-        if (bar > 100) {
-            ctx.fillStyle = "red";
-        }
-        else {
-            ctx.fillStyle = "white";
-        }
-        ctx.fillRect(bar - 10, 0, 10, 100);
-        this.drawCenterLine();
-    };
-    return ProgressBar;
-}());
-var Learner = /** @class */ (function () {
-    function Learner() {
-        actions = [];
-        predictions = [];
-    }
-    Learner.prototype.addAction = function (action) {
-        actions.push(action);
-    };
-    Learner.prototype.predict = function () {
-        p = 1;
-        if (Math.random() < 0.5) {
-            p = -1;
-        }
-        predictions.push(p);
-        return p;
-    };
-    return Learner;
-}());

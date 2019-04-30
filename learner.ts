@@ -3,21 +3,21 @@ class Learner {
   public predictions: number[]; // -1 or 1
 
   public constructor() {
-    actions = [];
-    predictions = [];
+    this.actions = [];
+    this.predictions = [];
   }
 
   public addAction(action: number): void {
-    actions.push(action);
+    this.actions.push(action);
   }
 
   public predict(): number {
-    p = 1;
+    let p = 1;
     if (Math.random() < 0.5) {
       p = -1;
     }
 
-    predictions.push(p);
+    this.predictions.push(p);
     return p;
   }
 }

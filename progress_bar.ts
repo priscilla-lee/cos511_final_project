@@ -1,49 +1,48 @@
 class ProgressBar {
-  public canvas;
   public ctx;
   public bar: number;
 
-  public constructor(canvas) {
-    canvas = document.getElementById("canvas");
+  public constructor() {
+    const canvas = <HTMLCanvasElement> document.getElementById("canvas");
     canvas.height = 100;
     canvas.width = 200;
 
     // Draw center line
-    ctx = canvas.getContext("2d");
+    this.ctx = canvas.getContext("2d");
     this.drawCenterLine();
-    bar = 100;
+    this.bar = 100;
   }
 
   public drawCenterLine(): void {
-    ctx.lineWidth = 0.5;
-    ctx.moveTo(100.5, 0);
-    ctx.lineTo(100.5, 100);
-    ctx.stroke();
+    this.ctx.lineWidth = 0.5;
+    this.ctx.moveTo(100.5, 0);
+    this.ctx.lineTo(100.5, 100);
+    this.ctx.stroke();
   }
 
   public userWins(): void {
-    bar = bar - 10;
+    this.bar = this.bar - 10;
 
-    if (bar < 100) {
-      ctx.fillStyle = "blue";
+    if (this.bar < 100) {
+      this.ctx.fillStyle = "blue";
     } else {
-      ctx.fillStyle = "white";
+      this.ctx.fillStyle = "white";
     }
 
-    ctx.fillRect(bar, 0, 10, 100);
+    this.ctx.fillRect(this.bar, 0, 10, 100);
     this.drawCenterLine();
   }
 
   public learnerWins(): void {
-    bar = bar + 10;
+    this.bar = this.bar + 10;
 
-    if (bar > 100) {
-      ctx.fillStyle = "red";
+    if (this.bar > 100) {
+      this.ctx.fillStyle = "red";
     } else {
-      ctx.fillStyle = "white";
+      this.ctx.fillStyle = "white";
     }
 
-    ctx.fillRect(bar-10, 0, 10, 100);
+    this.ctx.fillRect(this.bar-10, 0, 10, 100);
     this.drawCenterLine();
   }
 }

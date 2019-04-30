@@ -1,23 +1,23 @@
 // HTML document elements
-uPenny = document.getElementById("userPenny")
-lPenny = document.getElementById("learnerPenny")
-uScore = document.getElementById("userScore")
-lScore = document.getElementById("learnerScore")
-gameover = document.getElementById("gameover")
+const uPenny = document.getElementById("userPenny");
+const lPenny = document.getElementById("learnerPenny");
+const uScore = document.getElementById("userScore");
+const lScore = document.getElementById("learnerScore");
+const gameover = document.getElementById("gameover");
 
 // Create learner and set scores to 0
-Learner l = new Learner();
-userScore = 0;
-learnerScore = 0;
+const l = new Learner();
+let userScore = 0;
+let learnerScore = 0;
 
 // Display dummy pennies and starting progress bar
-uPenny.src = "heads_dummy.jpg";
-lPenny.src = "tails_dummy.jpg";
-ProgressBar pb = new ProgressBar();
+uPenny.setAttribute("src", "heads_dummy.jpg");
+lPenny.setAttribute("src", "tails_dummy.jpg");
+const pb = new ProgressBar();
 
 window.onkeydown = function(e) {
   // Get keypress
-  action : number = 1;
+  let action : number = 1;
   if (e.keyCode == 38) { // Up arrow
     action = 1; 
   } else if (e.keyCode == 40) { // Down arrow
@@ -28,14 +28,14 @@ window.onkeydown = function(e) {
 
   // Add user action, get learner prediction
   l.addAction(action);
-  prediction = l.predict();
+  const prediction = l.predict();
 
   // Display pennies
-  if (action == 1) { uPenny.src = "heads.jpg"; }
-  else             { uPenny.src = "tails.jpg"; }
+  if (action == 1) { uPenny.setAttribute("src", "heads.jpg"); }
+  else             { uPenny.setAttribute("src", "tails.jpg"); }
 
-  if (prediction == 1) { lPenny.src = "heads.jpg"; }
-  else                 { lPenny.src = "tails.jpg"; }
+  if (prediction == 1) { lPenny.setAttribute("src", "heads.jpg"); }
+  else                 { lPenny.setAttribute("src", "tails.jpg"); }
 
   // Display a score
   if (prediction == action) { 
@@ -64,7 +64,7 @@ window.onkeydown = function(e) {
 
     gameover.style.display = "block";
     window.onkeydown = function(e) {};
-    uPenny.src = "heads_dummy.jpg";
-    lPenny.src = "tails_dummy.jpg";
+    uPenny.setAttribute("src", "heads_dummy.jpg");
+    lPenny.setAttribute("src", "tails_dummy.jpg");
   }
 }
