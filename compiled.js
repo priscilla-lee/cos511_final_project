@@ -131,3 +131,61 @@ window.onkeydown = function (e) {
         lPenny.src = "tails_dummy.jpg";
     }
 };
+var ProgressBar = /** @class */ (function () {
+    function ProgressBar(canvas) {
+        canvas = document.getElementById("canvas");
+        canvas.height = 100;
+        canvas.width = 200;
+        // Draw center line
+        ctx = canvas.getContext("2d");
+        this.drawCenterLine();
+        bar = 100;
+    }
+    ProgressBar.prototype.drawCenterLine = function () {
+        ctx.lineWidth = 0.5;
+        ctx.moveTo(100.5, 0);
+        ctx.lineTo(100.5, 100);
+        ctx.stroke();
+    };
+    ProgressBar.prototype.userWins = function () {
+        bar = bar - 10;
+        if (bar < 100) {
+            ctx.fillStyle = "blue";
+        }
+        else {
+            ctx.fillStyle = "white";
+        }
+        ctx.fillRect(bar, 0, 10, 100);
+        this.drawCenterLine();
+    };
+    ProgressBar.prototype.learnerWins = function () {
+        bar = bar + 10;
+        if (bar > 100) {
+            ctx.fillStyle = "red";
+        }
+        else {
+            ctx.fillStyle = "white";
+        }
+        ctx.fillRect(bar - 10, 0, 10, 100);
+        this.drawCenterLine();
+    };
+    return ProgressBar;
+}());
+var Learner = /** @class */ (function () {
+    function Learner() {
+        actions = [];
+        predictions = [];
+    }
+    Learner.prototype.addAction = function (action) {
+        actions.push(action);
+    };
+    Learner.prototype.predict = function () {
+        p = 1;
+        if (Math.random() < 0.5) {
+            p = -1;
+        }
+        predictions.push(p);
+        return p;
+    };
+    return Learner;
+}());
