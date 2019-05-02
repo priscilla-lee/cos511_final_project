@@ -19,22 +19,22 @@ window.onkeydown = function(e) {
   // Get keypress
   let action : number = 1;
   if (e.keyCode == 38) { // Up arrow
-    action = 1; 
+    action = 0; // heads
   } else if (e.keyCode == 40) { // Down arrow
-    action = -1;
+    action = 1; // tails
   } else {
     return;
   }
 
-  // Add user action, get learner prediction
+  // Get learner prediction, observe user action
   const prediction = l.predict();
   l.addAction(action);
 
   // Display pennies
-  if (action == 1) { uPenny.setAttribute("src", "heads.jpg"); }
+  if (action == 0) { uPenny.setAttribute("src", "heads.jpg"); }
   else             { uPenny.setAttribute("src", "tails.jpg"); }
 
-  if (prediction == 1) { lPenny.setAttribute("src", "heads.jpg"); }
+  if (prediction == 0) { lPenny.setAttribute("src", "heads.jpg"); }
   else                 { lPenny.setAttribute("src", "tails.jpg"); }
 
   // Display a score

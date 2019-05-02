@@ -39,60 +39,53 @@ var ProgressBar = /** @class */ (function () {
     return ProgressBar;
 }());
 var Learner = /** @class */ (function () {
+    // Constructor: store actions, predictions, weights, and p's
     function Learner(num) {
         this.actions = [];
         this.predictions = [];
         this.weights = [];
         this.probability = [];
+        // init w = (0, 0) and p = (1/2, 1/2)
         for (var i = 0; i < num; i++) {
             this.weights.push(0);
             this.probability.push(0.5);
         }
     }
+    // Observe user action, update weights
     Learner.prototype.addAction = function (action) {
         this.actions.push(action);
-        // update weights vector
-        if (action == 1) { // heads
-            this.weights[0]++;
-        }
-        else { // tails
-            this.weights[1]++;
-        }
-        // update probability vector
-        this.probability[0] = this.weights[0] / (this.weights[0] + this.weights[1]);
-        this.probability[1] = this.weights[1] / (this.weights[0] + this.weights[1]);
-        console.log("updated probabilities:" + this.probability);
+        this._updateSimple(action);
+        console.log("updated p: " + this.probability);
+        console.log("");
     };
+    // Predict according to algorithm
     Learner.prototype.predict = function () {
         var p = this._predictStupid();
         this.predictions.push(p);
-        console.log("user actions:" + this.actions);
-        console.log("learner predictions:" + this.predictions);
-        console.log("weights:" + this.weights);
-        console.log("probability:" + this.probability);
-        console.log("");
+        console.log("     user: " + this.actions);
+        console.log("  learner: " + this.predictions);
+        console.log("  weights: " + this.weights);
         return p;
     };
+    // Simple: counts and proportions
+    Learner.prototype._updateSimple = function (action) {
+        // update weights vector
+        this.weights[action]++;
+        // update probability vector
+        var sum = this.weights.reduce(function (a, b) { return a + b; }, 0);
+        this.probability = this.weights.map(function (w) { return w / sum; });
+    };
+    // Simple: predict according to probability
     Learner.prototype._predictSimple = function () {
-        var p = -1; // tails
-        if (Math.random() < this.probability[0]) {
-            p = 1; // heads
-        }
-        return p;
+        return +!(Math.random() < this.probability[0]);
     };
+    // Stupid: predict action with higher probability
     Learner.prototype._predictStupid = function () {
-        var p = -1; // tails
-        if (this.probability[0] > this.probability[1]) {
-            p = 1; // heads
-        }
-        return p;
+        return +!(this.probability[0] > this.probability[1]);
     };
+    // Random: completely random 1/2 heads, 1/2 tails
     Learner.prototype._predictRandom = function () {
-        var p = 1; // tails
-        if (Math.random() < 0.5) {
-            p = -1; // heads
-        }
-        return p;
+        return +!(Math.random() < 0.5); // true --> 0, false --> 1
     };
     return Learner;
 }());
@@ -114,25 +107,25 @@ window.onkeydown = function (e) {
     // Get keypress
     var action = 1;
     if (e.keyCode == 38) { // Up arrow
-        action = 1;
+        action = 0; // heads
     }
     else if (e.keyCode == 40) { // Down arrow
-        action = -1;
+        action = 1; // tails
     }
     else {
         return;
     }
-    // Add user action, get learner prediction
+    // Get learner prediction, observe user action
     var prediction = l.predict();
     l.addAction(action);
     // Display pennies
-    if (action == 1) {
+    if (action == 0) {
         uPenny.setAttribute("src", "heads.jpg");
     }
     else {
         uPenny.setAttribute("src", "tails.jpg");
     }
-    if (prediction == 1) {
+    if (prediction == 0) {
         lPenny.setAttribute("src", "heads.jpg");
     }
     else {
