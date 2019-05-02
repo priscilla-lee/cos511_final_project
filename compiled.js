@@ -39,19 +39,59 @@ var ProgressBar = /** @class */ (function () {
     return ProgressBar;
 }());
 var Learner = /** @class */ (function () {
-    function Learner() {
+    function Learner(num) {
         this.actions = [];
         this.predictions = [];
+        this.weights = [];
+        this.probability = [];
+        for (var i = 0; i < num; i++) {
+            this.weights.push(0);
+            this.probability.push(0.5);
+        }
     }
     Learner.prototype.addAction = function (action) {
         this.actions.push(action);
+        // update weights vector
+        if (action == 1) { // heads
+            this.weights[0]++;
+        }
+        else { // tails
+            this.weights[1]++;
+        }
+        // update probability vector
+        this.probability[0] = this.weights[0] / (this.weights[0] + this.weights[1]);
+        this.probability[1] = this.weights[1] / (this.weights[0] + this.weights[1]);
+        console.log("updated probabilities:" + this.probability);
     };
     Learner.prototype.predict = function () {
-        var p = 1;
-        if (Math.random() < 0.5) {
-            p = -1;
-        }
+        var p = this._predictStupid();
         this.predictions.push(p);
+        console.log("user actions:" + this.actions);
+        console.log("learner predictions:" + this.predictions);
+        console.log("weights:" + this.weights);
+        console.log("probability:" + this.probability);
+        console.log("");
+        return p;
+    };
+    Learner.prototype._predictSimple = function () {
+        var p = -1; // tails
+        if (Math.random() < this.probability[0]) {
+            p = 1; // heads
+        }
+        return p;
+    };
+    Learner.prototype._predictStupid = function () {
+        var p = -1; // tails
+        if (this.probability[0] > this.probability[1]) {
+            p = 1; // heads
+        }
+        return p;
+    };
+    Learner.prototype._predictRandom = function () {
+        var p = 1; // tails
+        if (Math.random() < 0.5) {
+            p = -1; // heads
+        }
         return p;
     };
     return Learner;
@@ -63,7 +103,7 @@ var uScore = document.getElementById("userScore");
 var lScore = document.getElementById("learnerScore");
 var gameover = document.getElementById("gameover");
 // Create learner and set scores to 0
-var l = new Learner();
+var l = new Learner(2);
 var userScore = 0;
 var learnerScore = 0;
 // Display dummy pennies and starting progress bar
@@ -83,8 +123,8 @@ window.onkeydown = function (e) {
         return;
     }
     // Add user action, get learner prediction
-    l.addAction(action);
     var prediction = l.predict();
+    l.addAction(action);
     // Display pennies
     if (action == 1) {
         uPenny.setAttribute("src", "heads.jpg");

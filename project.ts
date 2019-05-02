@@ -6,7 +6,7 @@ const lScore = document.getElementById("learnerScore");
 const gameover = document.getElementById("gameover");
 
 // Create learner and set scores to 0
-const l = new Learner();
+const l = new Learner(2);
 let userScore = 0;
 let learnerScore = 0;
 
@@ -27,8 +27,8 @@ window.onkeydown = function(e) {
   }
 
   // Add user action, get learner prediction
-  l.addAction(action);
   const prediction = l.predict();
+  l.addAction(action);
 
   // Display pennies
   if (action == 1) { uPenny.setAttribute("src", "heads.jpg"); }
