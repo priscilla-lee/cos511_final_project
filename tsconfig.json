@@ -4,6 +4,7 @@
     },
     "files": [
         "progress_bar.ts",
+        "expert.ts",
         "learner.ts",
         "project.ts"
     ]

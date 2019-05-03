@@ -2,7 +2,7 @@ class ProgressBar {
   public ctx;
   public bar: number;
   
-  public constructor(POV: String, color: String) {
+  public constructor(POV: string, color: string) {
     const canvas = <HTMLCanvasElement> document.getElementById(POV + "Canvas");
     canvas.height = 100;
     canvas.width = 100;

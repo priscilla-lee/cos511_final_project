@@ -8,7 +8,7 @@ const user = document.getElementById("user");
 const learner = document.getElementById("learner");
 
 // Create learner and set scores to 0
-const l = new Learner(2, 0.1);
+const l = new Learner(2, 0.5);
 let userScore = 0;
 let learnerScore = 0;
 
