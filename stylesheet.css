@@ -10,7 +10,7 @@ img {
 
 canvas {
   width: 600;
-  height: 50;
+  height: 40;
   border: 1px solid #000000;
   margin-top: 15;
 }
@@ -22,7 +22,8 @@ canvas {
 }
 
 #title {
-  margin-top: 50;
+  margin-top: 30;
+  margin-bottom: 10;
 }
 
 #gameover {
@@ -42,15 +43,23 @@ canvas {
 }
 
 #user {
-  background-color: rgba(0, 0, 255, 0.3);
+  background-color: rgba(0, 140, 186, 0.3);
 }
 
 #learner {
-  background-color: rgba(255, 0, 0, 0.3);
+  background-color: rgba(255, 71, 26, 0.3);
 }
 
 #userScore, #learnerScore {
   font-size: 30;
+}
+
+#userScore {
+  color: #008CBA;
+}
+
+#learnerScore {
+  color: #ff471a;
 }
 
 .label {
@@ -77,4 +86,11 @@ canvas {
   display: inline-block;
   font-size: 16px;
   border-radius: 8px;
+  margin-top: 20px;
+}
+
+.description {
+  font-weight: normal;
+  text-align: center;
+  font-size: 18;
 }

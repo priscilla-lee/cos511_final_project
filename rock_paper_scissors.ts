@@ -15,8 +15,8 @@ let learnerScore = 0;
 // Display dummy pennies and starting progress bar
 uPenny.setAttribute("src", "rock_dummy.jpg");
 lPenny.setAttribute("src", "paper_dummy.jpg");
-const userPB = new ProgressBar("user", "blue");
-const learnerPB = new ProgressBar("learner", "red");
+const userPB = new ProgressBar("user", "#008CBA");
+const learnerPB = new ProgressBar("learner", "#ff471a");
 
 function winningPrediction(action) {
   if (action == 0) return 1;
@@ -25,16 +25,16 @@ function winningPrediction(action) {
 }
 
 window.onkeydown = function(e) {
+  // Get keypress
+  let action : number = 1;
+  if (e.keyCode == 82) { action = 0; } // r = rock = 0
+  else if (e.keyCode == 80) { action = 1; } // p = paper = 1
+  else if (e.keyCode == 83) { action = 2; } // s = scissors = 2
+  else { return; }
+
   // Hide labels
   user.style.display = "none";
   learner.style.display = "none";
-
-  // Get keypress
-  let action : number = 1;
-  if (e.keyCode == 48) { action = 0; } // 0 = rock
-  else if (e.keyCode == 49) { action = 1; } // 1 = paper
-  else if (e.keyCode == 50) { action = 2; } // 2 = scissors
-  else { return; }
 
   // Get learner prediction, observe user action
   const prediction = l.predict();
@@ -52,13 +52,9 @@ window.onkeydown = function(e) {
   // Display a score
   if (prediction == winningPrediction(action)) { 
     learnerScore++; 
-    lScore.style.color = "red";
-    uScore.style.color = "black";
     learnerPB.fill();
   } else if (action == winningPrediction(prediction)) { 
     userScore++;
-    lScore.style.color = "black";
-    uScore.style.color = "blue"; 
     userPB.fill();
   }
   uScore.innerHTML = "" + userScore;
@@ -68,10 +64,10 @@ window.onkeydown = function(e) {
   if (Math.max(userScore, learnerScore) >= 100) {
     if (userScore > learnerScore) {
       gameover.innerHTML = "You won!";
-      gameover.style.color = "blue";
+      gameover.style.color = "#008CBA";
     } else {
       gameover.innerHTML = "The computer won!";
-      gameover.style.color = "red";
+      gameover.style.color = "#ff471a";
     }
 
     // Display game over, ignore keypresses

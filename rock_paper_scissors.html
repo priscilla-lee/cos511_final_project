@@ -6,10 +6,9 @@
 
   <body>
     <h1 id="title" class="center">Rock, Paper, Scissors</h1>
-    <span class="center">
-      <a class="center button" href="matching_pennies.html">Play Matching Pennies instead!</a>
-    </span>
-    <p class="center">Use the number keys 0, 1, and 2 to pick rock (0), paper (1), and scissors (2).</p>
+    <p class="center description">Normal game of Rock, Paper, Scissors! First to 100 wins!</p>
+    </div>
+    <p class="center">Use your keyboard to pick rock (r), paper (p), and scissors (s).</p>
   
     <div class="center" style="position: relative">
       <!-- Game over overlay-->
@@ -41,6 +40,13 @@
       <canvas id="learnerCanvas"></canvas>
       <span class="score" id="learnerScore">0</span>
     </div>
+
+    <!-- Toggle button -->
+    <span class="center">
+      <a class="center button" href="matching_pennies.html">
+        Play Matching Pennies instead!
+      </a>
+    </span>
 
     <!-- Learning algorithm script -->
     <script src="compiled_rock_paper_scissors.js"></script> 

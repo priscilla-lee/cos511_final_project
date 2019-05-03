@@ -188,12 +188,9 @@ var learnerScore = 0;
 // Display dummy pennies and starting progress bar
 uPenny.setAttribute("src", "heads_dummy.jpg");
 lPenny.setAttribute("src", "tails_dummy.jpg");
-var userPB = new ProgressBar("user", "blue");
-var learnerPB = new ProgressBar("learner", "red");
+var userPB = new ProgressBar("user", "#008CBA");
+var learnerPB = new ProgressBar("learner", "#ff471a");
 window.onkeydown = function (e) {
-    // Hide labels
-    user.style.display = "none";
-    learner.style.display = "none";
     // Get keypress
     var action = 1;
     if (e.keyCode == 37) {
@@ -205,6 +202,9 @@ window.onkeydown = function (e) {
     else {
         return;
     }
+    // Hide labels
+    user.style.display = "none";
+    learner.style.display = "none";
     // Get learner prediction, observe user action
     var prediction = l.predict();
     l.addAction(action);
@@ -224,14 +224,10 @@ window.onkeydown = function (e) {
     // Display a score
     if (prediction == action) {
         learnerScore++;
-        lScore.style.color = "red";
-        uScore.style.color = "black";
         learnerPB.fill();
     }
     else {
         userScore++;
-        lScore.style.color = "black";
-        uScore.style.color = "blue";
         userPB.fill();
     }
     uScore.innerHTML = "" + userScore;
@@ -240,11 +236,11 @@ window.onkeydown = function (e) {
     if (Math.max(userScore, learnerScore) >= 100) {
         if (userScore > learnerScore) {
             gameover.innerHTML = "You won!";
-            gameover.style.color = "blue";
+            gameover.style.color = "#008CBA";
         }
         else {
             gameover.innerHTML = "The computer won!";
-            gameover.style.color = "red";
+            gameover.style.color = "#ff471a";
         }
         // Display game over, ignore keypresses
         gameover.style.display = "block";

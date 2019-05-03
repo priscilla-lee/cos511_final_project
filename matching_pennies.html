@@ -6,10 +6,8 @@
 
   <body>
     <h1 id="title" class="center">Matching Pennies</h1>
-    <span class="center">
-    <a class="center button" href="rock_paper_scissors.html">Play Rock, Paper, Scissors instead!</a>
-  </span>
-    <p class="center">Use your left and right arrows to pick heads or tails.</p>
+    <p class="center description">You win if your penny doesn't match the computer's penny.<br> The computer wins if it guesses your pick correctly.<br> First to 100 wins!</p>
+    <p class="center">Use your left and right arrows to pick heads (&#8678;) or tails (&#8680;).</p>
   
     <div class="center" style="position: relative">
       <!-- Game over overlay-->
@@ -41,6 +39,13 @@
       <canvas id="learnerCanvas"></canvas>
       <span class="score" id="learnerScore">0</span>
     </div>
+
+    <!-- Toggle button -->
+    <span class="center">
+      <a class="center button" href="rock_paper_scissors.html">
+        Play Rock, Paper, Scissors instead!
+      </a>
+    </span>
 
     <!-- Learning algorithm script -->
     <script src="compiled_matching_pennies.js"></script> 
