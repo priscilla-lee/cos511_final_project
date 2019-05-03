@@ -69,6 +69,7 @@ window.onkeydown = function(e) {
       gameover.style.color = "red";
     }
 
+    // Display game over, ignore keypresses
     gameover.style.display = "block";
     window.onkeydown = function(e) {};
     uPenny.setAttribute("src", "heads_dummy.jpg");

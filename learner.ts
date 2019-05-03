@@ -2,109 +2,77 @@ class Learner {
   public actions: number[]; // 0 (heads) or 1 (tails)
   public predictions: number[]; // 0 or 1
 
-  // vectors for learning
+  // (Option 1) 2 experts
   public weights: number[]; 
   public probability: number[];
   public eta: number;
 
-  // experts for learning
-  public experts: Expert[]; // 256 context trees (with history h = 3)
-  public Pt: number[]; // probability distribution over experts
+  // (Option 2) 256 experts with context trees
+  public experts: Expert[]; 
+  public Pt: number[];
 
   // Constructor: store actions, predictions, weights, and p's
   public constructor(num, eta) {
     this.actions = [];
     this.predictions = [];
-    this.weights = [];
-    this.probability = [];
     this.eta = eta;
 
-    // init w = (1, 1) and p = (1/2, 1/2)
+    // (Option 1) 2 experts
+    this.weights = [];
+    this.probability = [];
     for (let i = 0; i < num; i++) {
-      this.weights.push(1); // 1 for MW, 0 for simple algorithm
-      this.probability.push(0.5);
+      this.weights.push(1);
+      this.probability.push(1/num); // uniform probability
     }
 
-    // distribution Pt that we are learning
+    // (Option 2) 256 experts with context trees
+    this.experts = [];
     this.Pt = [];
     for (let i = 0; i < 256; i++) {
-      this.Pt.push(1/256);
-    }
-
-    // set up 255 experts (using history h = 3)
-    this.experts = [];
-    for (let i = 0; i < 256; i++) {
       this.experts.push(new Expert(i));
+      this.Pt.push(1/256); // uniform probability
     }
   }
 
   // Predict according to algorithm
   public predict(): number {
-    const p = this._predictExpertly(); 
+    const p = /*Option 2*/ this._predictExpertly(); 
+         // = /*Option 1*/ this._predictProbabilistically();
     this.predictions.push(p);
 
-    console.log("     user: " + this.actions);
-    console.log("  learner: " + this.predictions);
-    console.log("  weights: " + this.weights);
+    // console.log("     user: " + this.actions);
+    // console.log("  learner: " + this.predictions);
+    // console.log("  weights: " + this.weights);
 
     return p;
   }
 
   // Observe user action, update weights
   public addAction(action: number): void {
-    this._updateExpertWeights(action);
+    /*Option 2*/ this._updateExpertWeights(action);
+    //Option 1   this._updateMultiplicativeWeights(action);
+
     this.actions.push(action);
 
-    console.log("updated p: " + this.probability);
-    console.log("");
-  }
-
-
-  // Reward: 1 if same, -1 if different/mistake
-  private _reward(action: number, prediction: number) {
-    if (action == prediction) return 1;
-    else return -1;
+    // console.log("updated p: " + this.probability);
+    // console.log("");
   }
 
   /* -------------------------------------------------------
                       Updating algorithms
   ------------------------------------------------------- */
 
-  // Simple algorithm: counts and proportions
-  private _updateSimple(action: number): void {
-    // update weights vector
-    this.weights[action]++;
-
-    // update probability vector
-    const sum = this.weights.reduce((a, b) => a + b, 0);
-    this.probability = this.weights.map(w => w / sum);
-  }
-
-  // Weighted majority algorithm: page 156 in textbook
-  /* Early machines for learning to play penny-matching, as in section 6.5, 
-  were invented by Hagelbarger [115] and later by Shannon [213]. Figure 6.3 
-  is reprinted from the former. The technique of combining the predictions 
-  of all possible context trees is due to Helmbold and Schapire [122], in a 
-  direct adaptation of Willems, Shtarkov, and Tjalkens’s method for weighting 
-  context trees [231]. The Internet implementation was created by the authors 
-  with Anup Doshi. */
-  // [115] D. W. Hagelbarger. SEER, A SEquence Extrapolating Robot. IRE Transactions on Electronic Computers , EC-5(1):1– 7, March 1956.
-  // [122] David P. Helmbold and Robert E. Schapire. Predicting nearly as well as the best pruning of a decision tree. Machine Learning , 27(1):51– 68, April 1997.
-  // [213] Claude E. Shannon. A mind-reading (?) machine. Technical report, Bell Laboratories, 1953.
-  // [231] Frans M. J. Willems, Yuri M. Shtarkov, and Tjalling J. Tjalkens. The context tree weighting method: Basic properties. IEEE Transactions on Information Theory , 41(3):653– 664, 1995.
-  public _updateExpertWeights(action: number): void {
+  // Multiplicative weights with context tree experts (page 156 in textbook)
+  private _updateExpertWeights(action: number): void {
     // If we don't have enough history, ignore
-    if (this.actions.length < 3) {
-      return;
-    }
+    if (this.actions.length < 3) { return; }
 
     // Get 3 most recent actions (history)
     const history = this.actions.join("").substring(this.actions.length-3);
 
-    // Update Pt according to which experts would've predicted the action correctly
-    // i.e. (only) penalize experts that made mistakes
+    // Update Pt: (only) penalize experts that made mistakes
     for (let i = 0; i < this.Pt.length; i++) {
-      if (this.experts[i].predict(history) != action) { // mistake!
+      if (this.experts[i].predict(history) != action) {
         this.Pt[i] = this.Pt[i] * Math.pow(Math.E, -this.eta);
       }
     }
@@ -113,9 +81,8 @@ class Learner {
     this.Pt = this._normalize(this.Pt);
   }
 
-
   // Multiplicative weights algorithm: update rule
-  private _updateMW(action: number): void {
+  private _updateMultiplicativeWeights(action: number): void {
     // update weights vector
     this.weights[0] *= (1 + this.eta * this._reward(action, 0));
     this.weights[1] *= (1 + this.eta * this._reward(action, 1));
@@ -124,12 +91,18 @@ class Learner {
     this.probability = this._normalize(this.weights);
   }
 
+  // Simple algorithm: counts and proportions
+  private _updateCounts(action: number): void {
+    this.weights[action]++;
+    this.probability = this._normalize(this.weights);
+  }
+
   /* -------------------------------------------------------
                       Prediction algorithms
   ------------------------------------------------------- */
 
   // Expert prediction: choose prediction of expert according to Pt
-  public _predictExpertly(): number {
+  private _predictExpertly(): number {
     // If we don't have enough history, just predict randomly
     if (this.actions.length < 3) {
       return this._predictRandomly();
@@ -162,8 +135,14 @@ class Learner {
   }
 
   /* -------------------------------------------------------
-        Helper functions with probability distributions
+        Helper functions (with probability distributions)
   ------------------------------------------------------- */
+
+  // Reward: 1 if same, -1 if different/mistake
+  private _reward(action: number, prediction: number) {
+    if (action == prediction) return 1;
+    else return -1;
+  }
 
   // Randomly choose an index given array of probabilities
   private _discrete(probabilities: number[]): number {
