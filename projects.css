@@ -12,6 +12,7 @@ canvas {
   width: 600;
   height: 50;
   border: 1px solid #000000;
+  margin-top: 15;
 }
 
 .center {
@@ -29,8 +30,39 @@ canvas {
   display: none;
   font-weight: bold;
   font-size: 100;
+  z-index: 100;
+}
+
+#user, #learner {
+  position: absolute;
+  font-weight: bold;
+  font-size: 30; 
+  height: 100%; 
+  width: 100%;
+}
+
+#user {
+  background-color: rgba(0, 0, 255, 0.3);
+}
+
+#learner {
+  background-color: rgba(255, 0, 0, 0.3);
 }
 
 #userScore, #learnerScore {
   font-size: 30;
+}
+
+.label {
+  font-size: 25;
+  width: 200;
+  text-align: right;
+  margin-right: 10;
+}
+
+.score {
+  font-size: 25;
+  width: 200;
+  margin-left: 10;
+  text-align: left;
 }

@@ -4,24 +4,31 @@ const lPenny = document.getElementById("learnerPenny");
 const uScore = document.getElementById("userScore");
 const lScore = document.getElementById("learnerScore");
 const gameover = document.getElementById("gameover");
+const user = document.getElementById("user");
+const learner = document.getElementById("learner");
 
 // Create learner and set scores to 0
-const l = new Learner(2);
+const l = new Learner(2, 0.1);
 let userScore = 0;
 let learnerScore = 0;
 
 // Display dummy pennies and starting progress bar
 uPenny.setAttribute("src", "heads_dummy.jpg");
 lPenny.setAttribute("src", "tails_dummy.jpg");
-const pb = new ProgressBar();
+const userPB = new ProgressBar("user", "blue");
+const learnerPB = new ProgressBar("learner", "red");
 
 window.onkeydown = function(e) {
+  // Hide labels
+  user.style.display = "none";
+  learner.style.display = "none";
+
   // Get keypress
   let action : number = 1;
-  if (e.keyCode == 38) { // Up arrow
-    action = 0; // heads
-  } else if (e.keyCode == 40) { // Down arrow
-    action = 1; // tails
+  if (e.keyCode == 37) { // Left arrow (heads)
+    action = 0;
+  } else if (e.keyCode == 39) { // Right arrow (tails)
+    action = 1;
   } else {
     return;
   }
@@ -42,18 +49,18 @@ window.onkeydown = function(e) {
     learnerScore++; 
     lScore.style.color = "red";
     uScore.style.color = "black";
-    pb.learnerWins();
+    learnerPB.fill();
   } else { 
     userScore++;
     lScore.style.color = "black";
     uScore.style.color = "blue"; 
-    pb.userWins();
+    userPB.fill();
   }
-  uScore.innerHTML = "User score: " + userScore;
-  lScore.innerHTML = "Learner score: " + learnerScore;
+  uScore.innerHTML = "" + userScore;
+  lScore.innerHTML = "" + learnerScore;
 
   // Display "You won" or "Computer won" if game over
-  if (Math.abs(userScore - learnerScore) >= 10) {
+  if (Math.max(userScore, learnerScore) >= 100) {
     if (userScore > learnerScore) {
       gameover.innerHTML = "You won!";
       gameover.style.color = "blue";

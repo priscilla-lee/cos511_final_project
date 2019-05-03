@@ -1,73 +1,56 @@
 var ProgressBar = /** @class */ (function () {
-    function ProgressBar() {
-        var canvas = document.getElementById("canvas");
+    function ProgressBar(POV, color) {
+        var canvas = document.getElementById(POV + "Canvas");
         canvas.height = 100;
-        canvas.width = 200;
-        // Draw center line
+        canvas.width = 100;
         this.ctx = canvas.getContext("2d");
-        this.drawCenterLine();
-        this.bar = 100;
+        this.ctx.fillStyle = color;
+        this.bar = 0;
     }
-    ProgressBar.prototype.drawCenterLine = function () {
-        this.ctx.lineWidth = 0.5;
-        this.ctx.moveTo(100.5, 0);
-        this.ctx.lineTo(100.5, 100);
-        this.ctx.stroke();
-    };
-    ProgressBar.prototype.userWins = function () {
-        this.bar = this.bar - 10;
-        if (this.bar < 100) {
-            this.ctx.fillStyle = "blue";
-        }
-        else {
-            this.ctx.fillStyle = "white";
-        }
-        this.ctx.fillRect(this.bar, 0, 10, 100);
-        this.drawCenterLine();
-    };
-    ProgressBar.prototype.learnerWins = function () {
-        this.bar = this.bar + 10;
-        if (this.bar > 100) {
-            this.ctx.fillStyle = "red";
-        }
-        else {
-            this.ctx.fillStyle = "white";
-        }
-        this.ctx.fillRect(this.bar - 10, 0, 10, 100);
-        this.drawCenterLine();
+    ProgressBar.prototype.fill = function () {
+        this.ctx.fillRect(this.bar, 0, 1, 100);
+        this.bar++;
     };
     return ProgressBar;
 }());
 var Learner = /** @class */ (function () {
     // Constructor: store actions, predictions, weights, and p's
-    function Learner(num) {
+    function Learner(num, eta) {
         this.actions = [];
         this.predictions = [];
         this.weights = [];
         this.probability = [];
-        // init w = (0, 0) and p = (1/2, 1/2)
+        this.eta = eta;
+        // init w = (1, 1) and p = (1/2, 1/2)
         for (var i = 0; i < num; i++) {
-            this.weights.push(0);
+            this.weights.push(1); // 1 for MW, 0 for simple algorithm
             this.probability.push(0.5);
         }
     }
     // Observe user action, update weights
     Learner.prototype.addAction = function (action) {
         this.actions.push(action);
-        this._updateSimple(action);
+        this._updateMW(action);
         console.log("updated p: " + this.probability);
         console.log("");
     };
     // Predict according to algorithm
     Learner.prototype.predict = function () {
-        var p = this._predictStupid();
+        var p = this._predictProbabilistically();
         this.predictions.push(p);
         console.log("     user: " + this.actions);
         console.log("  learner: " + this.predictions);
         console.log("  weights: " + this.weights);
         return p;
     };
-    // Simple: counts and proportions
+    // Reward: 1 if same, -1 if different/mistake
+    Learner.prototype._reward = function (action, prediction) {
+        if (action == prediction)
+            return 1;
+        else
+            return -1;
+    };
+    // Simple algorithm: counts and proportions
     Learner.prototype._updateSimple = function (action) {
         // update weights vector
         this.weights[action]++;
@@ -75,15 +58,38 @@ var Learner = /** @class */ (function () {
         var sum = this.weights.reduce(function (a, b) { return a + b; }, 0);
         this.probability = this.weights.map(function (w) { return w / sum; });
     };
-    // Simple: predict according to probability
-    Learner.prototype._predictSimple = function () {
+    // Weighted majority algorithm: page 156 in textbook
+    /* Early machines for learning to play penny-matching, as in section 6.5,
+    were invented by Hagelbarger [115] and later by Shannon [213]. Figure 6.3
+    is reprinted from the former. The technique of combining the predictions
+    of all possible context trees is due to Helmbold and Schapire [122], in a
+    direct adaptation of Willems, Shtarkov, and Tjalkens’s method for weighting
+    context trees [231]. The Internet implementation was created by the authors
+    with Anup Doshi. */
+    // [115] D. W. Hagelbarger. SEER, A SEquence Extrapolating Robot. IRE Transactions on Electronic Computers , EC-5(1):1– 7, March 1956.
+    // [122] David P. Helmbold and Robert E. Schapire. Predicting nearly as well as the best pruning of a decision tree. Machine Learning , 27(1):51– 68, April 1997.
+    // [213] Claude E. Shannon. A mind-reading (?) machine. Technical report, Bell Laboratories, 1953.
+    // [231] Frans M. J. Willems, Yuri M. Shtarkov, and Tjalling J. Tjalkens. The context tree weighting method: Basic properties. IEEE Transactions on Information Theory , 41(3):653– 664, 1995.
+    Learner.prototype._updateWM = function (action) {
+    };
+    // Multiplicative weights algorithm: update rule
+    Learner.prototype._updateMW = function (action) {
+        // update weights vector
+        this.weights[0] *= (1 + this.eta * this._reward(action, 0));
+        this.weights[1] *= (1 + this.eta * this._reward(action, 1));
+        // update probability vector
+        var sum = this.weights.reduce(function (a, b) { return a + b; }, 0);
+        this.probability = this.weights.map(function (w) { return w / sum; });
+    };
+    // Simple prediction: predict according to probability
+    Learner.prototype._predictProbabilistically = function () {
         return +!(Math.random() < this.probability[0]);
     };
-    // Stupid: predict action with higher probability
-    Learner.prototype._predictStupid = function () {
+    // Stupid prediction: predict action with higher probability
+    Learner.prototype._predictDeterministically = function () {
         return +!(this.probability[0] > this.probability[1]);
     };
-    // Random: completely random 1/2 heads, 1/2 tails
+    // Random prediction: 1/2 heads, 1/2 tails
     Learner.prototype._predictRandom = function () {
         return +!(Math.random() < 0.5); // true --> 0, false --> 1
     };
@@ -95,22 +101,28 @@ var lPenny = document.getElementById("learnerPenny");
 var uScore = document.getElementById("userScore");
 var lScore = document.getElementById("learnerScore");
 var gameover = document.getElementById("gameover");
+var user = document.getElementById("user");
+var learner = document.getElementById("learner");
 // Create learner and set scores to 0
-var l = new Learner(2);
+var l = new Learner(2, 0.1);
 var userScore = 0;
 var learnerScore = 0;
 // Display dummy pennies and starting progress bar
 uPenny.setAttribute("src", "heads_dummy.jpg");
 lPenny.setAttribute("src", "tails_dummy.jpg");
-var pb = new ProgressBar();
+var userPB = new ProgressBar("user", "blue");
+var learnerPB = new ProgressBar("learner", "red");
 window.onkeydown = function (e) {
+    // Hide labels
+    user.style.display = "none";
+    learner.style.display = "none";
     // Get keypress
     var action = 1;
-    if (e.keyCode == 38) { // Up arrow
-        action = 0; // heads
+    if (e.keyCode == 37) { // Left arrow (heads)
+        action = 0;
     }
-    else if (e.keyCode == 40) { // Down arrow
-        action = 1; // tails
+    else if (e.keyCode == 39) { // Right arrow (tails)
+        action = 1;
     }
     else {
         return;
@@ -136,18 +148,18 @@ window.onkeydown = function (e) {
         learnerScore++;
         lScore.style.color = "red";
         uScore.style.color = "black";
-        pb.learnerWins();
+        learnerPB.fill();
     }
     else {
         userScore++;
         lScore.style.color = "black";
         uScore.style.color = "blue";
-        pb.userWins();
+        userPB.fill();
     }
-    uScore.innerHTML = "User score: " + userScore;
-    lScore.innerHTML = "Learner score: " + learnerScore;
+    uScore.innerHTML = "" + userScore;
+    lScore.innerHTML = "" + learnerScore;
     // Display "You won" or "Computer won" if game over
-    if (Math.abs(userScore - learnerScore) >= 10) {
+    if (Math.max(userScore, learnerScore) >= 100) {
         if (userScore > learnerScore) {
             gameover.innerHTML = "You won!";
             gameover.style.color = "blue";
