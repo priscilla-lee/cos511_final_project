@@ -25,12 +25,6 @@ window.onkeydown = function(e) {
 
   // Get keypress
   let action : number = 1;
-  
-  // if (e.keyCode == 48) { action = 0; }
-  // else if (e.keyCode == 49) { action = 1; }
-  // else if (e.keyCode == 50) { action = 2; }
-  // else { return; }
-
   if (e.keyCode == 37) { action = 0; } // left = heads = 0
   else if (e.keyCode == 39) { action = 1; } // right = tails = 1
   else { return; }
@@ -38,7 +32,6 @@ window.onkeydown = function(e) {
   // Get learner prediction, observe user action
   const prediction = l.predict();
   l.addAction(action);
-  console.log("prediction: " + prediction + ", action: " + action);
 
   // Display pennies
   if (action == 0) { uPenny.setAttribute("src", "heads.jpg"); }

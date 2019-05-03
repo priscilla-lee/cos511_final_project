@@ -85,6 +85,7 @@ var Learner = /** @class */ (function () {
         // Update Pt: (only) penalize experts that made mistakes
         for (var i = 0; i < this.Pt.length; i++) {
             if (this.experts[i].predict(history) != action) {
+                // bigger eta --> harsher penalty
                 this.Pt[i] = this.Pt[i] * Math.pow(Math.E, -this.eta);
             }
         }
@@ -182,6 +183,7 @@ var user = document.getElementById("user");
 var learner = document.getElementById("learner");
 // Create learner and set scores to 0
 var l = new Learner(2, 0.5, 3); // <-- matching pennies
+//  l = new Learner(3, 0.5, 2); // <-- rock, paper, scissors
 var userScore = 0;
 var learnerScore = 0;
 // Display dummy pennies and starting progress bar
@@ -195,10 +197,6 @@ window.onkeydown = function (e) {
     learner.style.display = "none";
     // Get keypress
     var action = 1;
-    // if (e.keyCode == 48) { action = 0; }
-    // else if (e.keyCode == 49) { action = 1; }
-    // else if (e.keyCode == 50) { action = 2; }
-    // else { return; }
     if (e.keyCode == 37) {
         action = 0;
     } // left = heads = 0
@@ -208,6 +206,12 @@ window.onkeydown = function (e) {
     else {
         return;
     }
+    // } else {
+    //   if (e.keyCode == 48) { action = 0; } // 0 = rock
+    //   else if (e.keyCode == 49) { action = 1; } // 1 = paper
+    //   else if (e.keyCode == 50) { action = 2; } // 2 = scissors
+    //   else { return; }
+    // }
     // Get learner prediction, observe user action
     var prediction = l.predict();
     l.addAction(action);

@@ -1,0 +1,45 @@
+<html>
+  <head>
+    <title>511 Final Project</title>
+    <link rel="stylesheet" href="stylesheet.css">
+  </head>
+
+  <body>
+    <h1 id="title" class="center">Matching Pennies</h1>
+    <p class="center">Use your left and right arrows to pick heads or tails.</p>
+  
+    <div class="center" style="position: relative">
+      <!-- Game over overlay-->
+      <div id="gameover">Game over!</div>
+
+      <!-- User penny -->
+      <div style="display: inline-block; position: relative">
+        <div class="center" id="user">You</div>
+        <img id="userPenny"></img>
+      </div>
+
+      <!-- Learner penny -->
+      <div style="display: inline-block; position: relative" class="center">
+        <div class="center" id="learner">Computer</div>
+        <img id="learnerPenny"></img>
+      </div>
+    </div>
+
+    <!-- User score -->
+    <div class="center">
+      <span class="label">You:</span>
+      <canvas id="userCanvas"></canvas>
+      <span class="score" id="userScore">0</span>
+    </div>
+
+    <!-- Learner score -->
+    <div class="center">
+      <span class="label">Computer:</span>
+      <canvas id="learnerCanvas"></canvas>
+      <span class="score" id="learnerScore">0</span>
+    </div>
+
+    <!-- Learning algorithm script -->
+    <script src="compiled.js"></script> 
+  </body>
+</html>

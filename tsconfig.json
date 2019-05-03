@@ -1,11 +1,11 @@
 {
     "compilerOptions": {
-        "outFile": "compiled.js"
+        "outFile": "compiled_matching_pennies.js"
     },
     "files": [
         "progress_bar.ts",
         "expert.ts",
         "learner.ts",
-        "project.ts"
+        "matching_pennies.ts"
     ]
 }
