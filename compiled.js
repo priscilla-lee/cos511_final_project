@@ -15,39 +15,42 @@ var ProgressBar = /** @class */ (function () {
 }());
 var Expert = /** @class */ (function () {
     // Construct expert i
-    function Expert(i) {
+    function Expert(i, n_actions, history_length) {
+        this.num_actions = n_actions;
         this.number = i; // col number
-        this.predictions = i.toString(2); // binary
-        while (this.predictions.length < 8) {
+        this.predictions = i.toString(n_actions);
+        while (this.predictions.length < Math.pow(n_actions, history_length)) {
             this.predictions = "0" + this.predictions;
         }
     }
     // Prediction of expert i given history (e.g. "101")
     Expert.prototype.predict = function (history) {
-        var row = parseInt(history, 2); // row number
+        var row = parseInt(history, this.num_actions);
         return parseInt(this.predictions[row]);
     };
     return Expert;
 }());
 var Learner = /** @class */ (function () {
     // Constructor: store actions, predictions, weights, and p's
-    function Learner(num, eta) {
+    function Learner(num_actions, eta, history_length) {
         this.actions = [];
         this.predictions = [];
         this.eta = eta;
         // (Option 1) 2 experts
         this.weights = [];
         this.probability = [];
-        for (var i = 0; i < num; i++) {
+        for (var i = 0; i < num_actions; i++) {
             this.weights.push(1);
-            this.probability.push(1 / num); // uniform probability
+            this.probability.push(1 / num_actions); // uniform probability
         }
-        // (Option 2) 256 experts with context trees
+        // (Option 2) 256 (or 19683) experts with context trees
+        var num_experts = Math.pow(num_actions, Math.pow(num_actions, history_length));
+        this.h = history_length;
         this.experts = [];
         this.Pt = [];
-        for (var i = 0; i < 256; i++) {
-            this.experts.push(new Expert(i));
-            this.Pt.push(1 / 256); // uniform probability
+        for (var i = 0; i < num_experts; i++) {
+            this.experts.push(new Expert(i, num_actions, history_length));
+            this.Pt.push(1 / num_experts); // uniform probability
         }
     }
     // Predict according to algorithm
@@ -74,11 +77,11 @@ var Learner = /** @class */ (function () {
     // Multiplicative weights with context tree experts (page 156 in textbook)
     Learner.prototype._updateExpertWeights = function (action) {
         // If we don't have enough history, ignore
-        if (this.actions.length < 3) {
+        if (this.actions.length < this.h) {
             return;
         }
-        // Get 3 most recent actions (history)
-        var history = this.actions.join("").substring(this.actions.length - 3);
+        // Get h most recent actions (history)
+        var history = this.actions.join("").substring(this.actions.length - this.h);
         // Update Pt: (only) penalize experts that made mistakes
         for (var i = 0; i < this.Pt.length; i++) {
             if (this.experts[i].predict(history) != action) {
@@ -107,14 +110,14 @@ var Learner = /** @class */ (function () {
     // Expert prediction: choose prediction of expert according to Pt
     Learner.prototype._predictExpertly = function () {
         // If we don't have enough history, just predict randomly
-        if (this.actions.length < 3) {
+        if (this.actions.length < this.h) {
             return this._predictRandomly();
         }
         // Choose expert randomly (according to Pt)
         var index = this._discrete(this.Pt);
         var expert = this.experts[index];
-        // Get 3 most recent actions (history)
-        var history = this.actions.join("").substring(this.actions.length - 3);
+        // Get h most recent actions (history)
+        var history = this.actions.join("").substring(this.actions.length - this.h);
         // Return the prediction of the chosen expert, given the history
         return expert.predict(history);
     };
@@ -178,7 +181,7 @@ var gameover = document.getElementById("gameover");
 var user = document.getElementById("user");
 var learner = document.getElementById("learner");
 // Create learner and set scores to 0
-var l = new Learner(2, 0.5);
+var l = new Learner(2, 0.5, 3); // <-- matching pennies
 var userScore = 0;
 var learnerScore = 0;
 // Display dummy pennies and starting progress bar
@@ -192,18 +195,23 @@ window.onkeydown = function (e) {
     learner.style.display = "none";
     // Get keypress
     var action = 1;
-    if (e.keyCode == 37) { // Left arrow (heads)
+    // if (e.keyCode == 48) { action = 0; }
+    // else if (e.keyCode == 49) { action = 1; }
+    // else if (e.keyCode == 50) { action = 2; }
+    // else { return; }
+    if (e.keyCode == 37) {
         action = 0;
-    }
-    else if (e.keyCode == 39) { // Right arrow (tails)
+    } // left = heads = 0
+    else if (e.keyCode == 39) {
         action = 1;
-    }
+    } // right = tails = 1
     else {
         return;
     }
     // Get learner prediction, observe user action
     var prediction = l.predict();
     l.addAction(action);
+    console.log("prediction: " + prediction + ", action: " + action);
     // Display pennies
     if (action == 0) {
         uPenny.setAttribute("src", "heads.jpg");

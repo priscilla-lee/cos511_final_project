@@ -10,9 +10,10 @@ class Learner {
   // (Option 2) 256 experts with context trees
   public experts: Expert[]; 
   public Pt: number[];
+  public h: number; // history length
 
   // Constructor: store actions, predictions, weights, and p's
-  public constructor(num, eta) {
+  public constructor(num_actions: number, eta: number, history_length: number) {
     this.actions = [];
     this.predictions = [];
     this.eta = eta;
@@ -20,17 +21,19 @@ class Learner {
     // (Option 1) 2 experts
     this.weights = [];
     this.probability = [];
-    for (let i = 0; i < num; i++) {
+    for (let i = 0; i < num_actions; i++) {
       this.weights.push(1);
-      this.probability.push(1/num); // uniform probability
+      this.probability.push(1/num_actions); // uniform probability
     }
 
-    // (Option 2) 256 experts with context trees
+    // (Option 2) 256 (or 19683) experts with context trees
+    const num_experts = Math.pow(num_actions, Math.pow(num_actions, history_length));
+    this.h = history_length;
     this.experts = [];
     this.Pt = [];
-    for (let i = 0; i < 256; i++) {
-      this.experts.push(new Expert(i));
-      this.Pt.push(1/256); // uniform probability
+    for (let i = 0; i < num_experts; i++) {
+      this.experts.push(new Expert(i, num_actions, history_length));
+      this.Pt.push(1/num_experts); // uniform probability
     }
   }
 
@@ -65,14 +68,15 @@ class Learner {
   // Multiplicative weights with context tree experts (page 156 in textbook)
   private _updateExpertWeights(action: number): void {
     // If we don't have enough history, ignore
-    if (this.actions.length < 3) { return; }
+    if (this.actions.length < this.h) { return; }
 
-    // Get 3 most recent actions (history)
-    const history = this.actions.join("").substring(this.actions.length-3);
+    // Get h most recent actions (history)
+    const history = this.actions.join("").substring(this.actions.length-this.h);
 
     // Update Pt: (only) penalize experts that made mistakes
     for (let i = 0; i < this.Pt.length; i++) {
       if (this.experts[i].predict(history) != action) {
+        // bigger eta --> harsher penalty
         this.Pt[i] = this.Pt[i] * Math.pow(Math.E, -this.eta);
       }
     }
@@ -104,7 +108,7 @@ class Learner {
   // Expert prediction: choose prediction of expert according to Pt
   private _predictExpertly(): number {
     // If we don't have enough history, just predict randomly
-    if (this.actions.length < 3) {
+    if (this.actions.length < this.h) { 
       return this._predictRandomly();
     }
 
@@ -112,8 +116,8 @@ class Learner {
     const index = this._discrete(this.Pt);
     const expert = this.experts[index];
 
-    // Get 3 most recent actions (history)
-    const history = this.actions.join("").substring(this.actions.length-3);
+    // Get h most recent actions (history)
+    const history = this.actions.join("").substring(this.actions.length-this.h);
     
     // Return the prediction of the chosen expert, given the history
     return expert.predict(history);

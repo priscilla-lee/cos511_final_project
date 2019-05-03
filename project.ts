@@ -8,7 +8,7 @@ const user = document.getElementById("user");
 const learner = document.getElementById("learner");
 
 // Create learner and set scores to 0
-const l = new Learner(2, 0.5);
+const l = new Learner(2, 0.5, 3); // <-- matching pennies
 let userScore = 0;
 let learnerScore = 0;
 
@@ -25,17 +25,20 @@ window.onkeydown = function(e) {
 
   // Get keypress
   let action : number = 1;
-  if (e.keyCode == 37) { // Left arrow (heads)
-    action = 0;
-  } else if (e.keyCode == 39) { // Right arrow (tails)
-    action = 1;
-  } else {
-    return;
-  }
+  
+  // if (e.keyCode == 48) { action = 0; }
+  // else if (e.keyCode == 49) { action = 1; }
+  // else if (e.keyCode == 50) { action = 2; }
+  // else { return; }
+
+  if (e.keyCode == 37) { action = 0; } // left = heads = 0
+  else if (e.keyCode == 39) { action = 1; } // right = tails = 1
+  else { return; }
 
   // Get learner prediction, observe user action
   const prediction = l.predict();
   l.addAction(action);
+  console.log("prediction: " + prediction + ", action: " + action);
 
   // Display pennies
   if (action == 0) { uPenny.setAttribute("src", "heads.jpg"); }
