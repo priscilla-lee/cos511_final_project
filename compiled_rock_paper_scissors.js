@@ -182,53 +182,69 @@ var gameover = document.getElementById("gameover");
 var user = document.getElementById("user");
 var learner = document.getElementById("learner");
 // Create learner and set scores to 0
-var l = new Learner(2, 0.5, 3); // <-- matching pennies
+var l = new Learner(3, 0.5, 2); // <-- rock, paper, scissors
 var userScore = 0;
 var learnerScore = 0;
 // Display dummy pennies and starting progress bar
-uPenny.setAttribute("src", "heads_dummy.jpg");
-lPenny.setAttribute("src", "tails_dummy.jpg");
+uPenny.setAttribute("src", "rock_dummy.jpg");
+lPenny.setAttribute("src", "paper_dummy.jpg");
 var userPB = new ProgressBar("user", "blue");
 var learnerPB = new ProgressBar("learner", "red");
+function winningPrediction(action) {
+    if (action == 0)
+        return 1;
+    if (action == 1)
+        return 2;
+    return 0;
+}
 window.onkeydown = function (e) {
     // Hide labels
     user.style.display = "none";
     learner.style.display = "none";
     // Get keypress
     var action = 1;
-    if (e.keyCode == 37) {
+    if (e.keyCode == 48) {
         action = 0;
-    } // left = heads = 0
-    else if (e.keyCode == 39) {
+    } // 0 = rock
+    else if (e.keyCode == 49) {
         action = 1;
-    } // right = tails = 1
+    } // 1 = paper
+    else if (e.keyCode == 50) {
+        action = 2;
+    } // 2 = scissors
     else {
         return;
     }
     // Get learner prediction, observe user action
     var prediction = l.predict();
-    l.addAction(action);
+    l.addAction(winningPrediction(action));
     // Display pennies
     if (action == 0) {
-        uPenny.setAttribute("src", "heads.jpg");
+        uPenny.setAttribute("src", "rock.jpg");
+    }
+    else if (action == 1) {
+        uPenny.setAttribute("src", "paper.jpg");
     }
     else {
-        uPenny.setAttribute("src", "tails.jpg");
+        uPenny.setAttribute("src", "scissors.jpg");
     }
     if (prediction == 0) {
-        lPenny.setAttribute("src", "heads.jpg");
+        lPenny.setAttribute("src", "rock.jpg");
+    }
+    else if (prediction == 1) {
+        lPenny.setAttribute("src", "paper.jpg");
     }
     else {
-        lPenny.setAttribute("src", "tails.jpg");
+        lPenny.setAttribute("src", "scissors.jpg");
     }
     // Display a score
-    if (prediction == action) {
+    if (prediction == winningPrediction(action)) {
         learnerScore++;
         lScore.style.color = "red";
         uScore.style.color = "black";
         learnerPB.fill();
     }
-    else {
+    else if (action == winningPrediction(prediction)) {
         userScore++;
         lScore.style.color = "black";
         uScore.style.color = "blue";
@@ -249,7 +265,7 @@ window.onkeydown = function (e) {
         // Display game over, ignore keypresses
         gameover.style.display = "block";
         window.onkeydown = function (e) { };
-        uPenny.setAttribute("src", "heads_dummy.jpg");
-        lPenny.setAttribute("src", "tails_dummy.jpg");
+        uPenny.setAttribute("src", "rock_dummy.jpg");
+        lPenny.setAttribute("src", "paper_dummy.jpg");
     }
 };
