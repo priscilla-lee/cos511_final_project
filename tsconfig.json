@@ -6,6 +6,7 @@
         "progress_bar.ts",
         "expert.ts",
         "learner.ts",
-        "rock_paper_scissors.ts"
+        "rock_paper_scissors.ts",
+        "experiment.ts"
     ]
 }

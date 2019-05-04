@@ -265,3 +265,32 @@ window.onkeydown = function (e) {
         lPenny.setAttribute("src", "paper_dummy.jpg");
     }
 };
+var Experiment = /** @class */ (function () {
+    function Experiment(num_actions, eta, history_length) {
+        this.learner = new Learner(num_actions, eta, history_length);
+    }
+    Experiment.prototype.run = function (input) {
+        Let;
+        userScore = 0;
+        Let;
+        learnerScore = 0;
+        for (Let; i = 0; i < input.length)
+            ;
+        i++;
+        {
+            var a = input[i];
+            var p = this.Learner.predict();
+            if (p == a) {
+                learnerScore++;
+            }
+            else {
+                userScore++;
+            }
+            if (Math.max(p, a) >= 100) {
+                return [userScore, learnerScore];
+            }
+            this.Learner.addAction(a);
+        }
+    };
+    return Experiment;
+}());
