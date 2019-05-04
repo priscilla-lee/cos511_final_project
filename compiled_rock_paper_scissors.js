@@ -266,31 +266,73 @@ window.onkeydown = function (e) {
     }
 };
 var Experiment = /** @class */ (function () {
-    function Experiment(num_actions, eta, history_length) {
-        this.learner = new Learner(num_actions, eta, history_length);
+    function Experiment(num_actions, history_length) {
+        this.num_actions = num_actions;
+        this.history_length = history_length;
     }
-    Experiment.prototype.run = function (input) {
-        Let;
-        userScore = 0;
-        Let;
-        learnerScore = 0;
-        for (Let; i = 0; i < input.length)
-            ;
-        i++;
-        {
-            var a = input[i];
-            var p = this.Learner.predict();
+    Experiment.prototype.run = function (eta, input) {
+        var learner = new Learner(this.num_actions, eta, this.history_length);
+        var userScore = 0;
+        var learnerScore = 0;
+        for (var i = 0; i < input.length; i++) {
+            var a = parseInt(input[i]);
+            var p = learner.predict();
             if (p == a) {
                 learnerScore++;
             }
             else {
                 userScore++;
             }
-            if (Math.max(p, a) >= 100) {
+            if (Math.max(userScore, learnerScore) >= 100) {
                 return [userScore, learnerScore];
             }
-            this.Learner.addAction(a);
+            learner.addAction(a);
         }
+    };
+    Experiment.prototype.runRepeatedly = function (eta, input, count) {
+        var results = [];
+        for (var i = 0; i < count; i++) {
+            results.push(this.run(eta, input));
+        }
+        return results;
+    };
+    Experiment.generatePattern = function (pattern) {
+        var result = "";
+        while (result.length < 200) {
+            result += pattern;
+        }
+        return result;
+    };
+    Experiment.prototype.generateAdversary = function () {
+        var table = {};
+        var num_experts = Math.pow(this.num_actions, this.history_length);
+        // Put in empty arrays in each row (all possible histories)
+        for (var i = 0; i < num_experts; i++) {
+            var key = i.toString(this.num_actions);
+            table[key] = [0, 0];
+        }
+        // Set up (initial history, resulting adversarial string)
+        var adversary = "000";
+        var history = "000";
+        // Add an action one at a time
+        while (adversary.length < 200) {
+            var options = table[history];
+            var action = Experiment._getMinIndex(options);
+            adversary += action;
+            history = history.substring(1) + action;
+        }
+        return adversary;
+    };
+    Experiment._getMinIndex = function (array) {
+        var min = array[0];
+        var minIndex = 0;
+        for (var i = 0; i < array.length; i++) {
+            if (array[i] < min) {
+                min = array[i];
+                minIndex = i;
+            }
+        }
+        return minIndex;
     };
     return Experiment;
 }());
