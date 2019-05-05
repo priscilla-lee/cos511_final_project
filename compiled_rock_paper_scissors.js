@@ -296,6 +296,32 @@ var Experiment = /** @class */ (function () {
         }
         return results;
     };
+    Experiment.prototype.runAverage = function (eta, input, count) {
+        var results = this.runRepeatedly(eta, input, count);
+        var userSum = 0;
+        var learnerSum = 0;
+        for (var i = 0; i < results.length; i++) {
+            userSum += results[i][0];
+            learnerSum += results[i][1];
+        }
+        return [userSum / results.length, learnerSum / results.length];
+    };
+    Experiment.prototype.outputResults = function (eta_lo, eta_high, eta_step, input, count) {
+        // List etas
+        var etas = [];
+        for (var i = eta_lo; i < eta_high; i += eta_step) {
+            etas.push(i);
+        }
+        var userScores = [];
+        var learnerScores = [];
+        // Run all those experiments
+        for (var i = 0; i < etas.length; i++) {
+            var results = this.runAverage(etas[i], input, count);
+            userScores.push(results[0]);
+            learnerScores.push(results[1]);
+        }
+        return [etas, userScores, learnerScores];
+    };
     Experiment.generatePattern = function (pattern) {
         var result = "";
         while (result.length < 200) {
@@ -308,16 +334,32 @@ var Experiment = /** @class */ (function () {
         var num_experts = Math.pow(this.num_actions, this.history_length);
         // Put in empty arrays in each row (all possible histories)
         for (var i = 0; i < num_experts; i++) {
+            // Generate key (a possible history)
             var key = i.toString(this.num_actions);
-            table[key] = [0, 0];
+            while (key.length < this.history_length) {
+                key = "0" + key;
+            }
+            // Add the initial counts (0) to the table
+            table[key] = [];
+            for (var i_1 = 0; i_1 < this.num_actions; i_1++) {
+                table[key].push(0);
+            }
         }
         // Set up (initial history, resulting adversarial string)
-        var adversary = "000";
-        var history = "000";
+        var adversary = "";
+        var history = "";
+        for (var i = 0; i < this.history_length; i++) {
+            adversary += "0";
+            history += "0";
+        }
         // Add an action one at a time
         while (adversary.length < 200) {
+            // Choose an action from our options
             var options = table[history];
             var action = Experiment._getMinIndex(options);
+            // Increment appropriate cell in table
+            table[history][action]++;
+            // Update adversarial pattern and the history
             adversary += action;
             history = history.substring(1) + action;
         }
