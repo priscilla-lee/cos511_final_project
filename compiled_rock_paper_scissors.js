@@ -266,52 +266,56 @@ window.onkeydown = function (e) {
     }
 };
 var Experiment = /** @class */ (function () {
+    // Experiment for an n-strategy game, using context trees of given depth
     function Experiment(num_actions, history_length) {
         this.num_actions = num_actions;
         this.history_length = history_length;
     }
-    Experiment.prototype.run = function (eta, input) {
+    // Run a single experiment
+    Experiment.prototype.runSingle = function (eta, input) {
         var learner = new Learner(this.num_actions, eta, this.history_length);
         var userScore = 0;
         var learnerScore = 0;
+        // Play each round until someone wins
         for (var i = 0; i < input.length; i++) {
-            var a = parseInt(input[i]);
-            var p = learner.predict();
+            var p = learner.predict(); // Predict
+            var a = parseInt(input[i]); // Observe user action
             if (p == a) {
                 learnerScore++;
             }
             else {
                 userScore++;
             }
+            // After someone wins, return both resulting scores
             if (Math.max(userScore, learnerScore) >= 100) {
                 return [userScore, learnerScore];
             }
             learner.addAction(a);
         }
     };
-    Experiment.prototype.runRepeatedly = function (eta, input, count) {
-        var results = [];
-        for (var i = 0; i < count; i++) {
-            results.push(this.run(eta, input));
-        }
-        return results;
-    };
+    // Run experiments repeatedly, then average the user and learner scores
     Experiment.prototype.runAverage = function (eta, input, count) {
-        var results = this.runRepeatedly(eta, input, count);
         var userSum = 0;
         var learnerSum = 0;
-        for (var i = 0; i < results.length; i++) {
-            userSum += results[i][0];
-            learnerSum += results[i][1];
+        // Run experiments <count> times
+        for (var i = 0; i < count; i++) {
+            var scores = this.runSingle(eta, input);
+            userSum += scores[0];
+            learnerSum += scores[1];
         }
-        return [userSum / results.length, learnerSum / results.length];
+        return [userSum / count, learnerSum / count];
     };
-    Experiment.prototype.outputResults = function (eta_lo, eta_high, eta_step, input, count) {
-        // List etas
+    // Run experiments, varying etas according to given range
+    Experiment.prototype.runForRange = function (eta_lo, eta_high, eta_step, input, count) {
+        // List all etas in range
         var etas = [];
         for (var i = eta_lo; i < eta_high; i += eta_step) {
             etas.push(i);
         }
+        return this.run(etas, input, count);
+    };
+    // Run experiments for given etas
+    Experiment.prototype.run = function (etas, input, count) {
         var userScores = [];
         var learnerScores = [];
         // Run all those experiments
@@ -320,8 +324,13 @@ var Experiment = /** @class */ (function () {
             userScores.push(results[0]);
             learnerScores.push(results[1]);
         }
+        // Print out the results
+        console.log("etas = [" + etas.toString() + "]\n" +
+            "user = [" + userScores.toString() + "]\n" +
+            "learner = [" + learnerScores.toString() + "]");
         return [etas, userScores, learnerScores];
     };
+    // Generate a predictable, cyclic pattern
     Experiment.generatePattern = function (pattern) {
         var result = "";
         while (result.length < 200) {
@@ -329,6 +338,7 @@ var Experiment = /** @class */ (function () {
         }
         return result;
     };
+    // Generate the "omniscient", strategic adversary's input
     Experiment.prototype.generateAdversary = function () {
         var table = {};
         var num_experts = Math.pow(this.num_actions, this.history_length);
@@ -365,6 +375,7 @@ var Experiment = /** @class */ (function () {
         }
         return adversary;
     };
+    // Helper function to get index of minimum element in given array
     Experiment._getMinIndex = function (array) {
         var min = array[0];
         var minIndex = 0;

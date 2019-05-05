@@ -249,3 +249,127 @@ window.onkeydown = function (e) {
         lPenny.setAttribute("src", "tails_dummy.jpg");
     }
 };
+var Experiment = /** @class */ (function () {
+    // Experiment for an n-strategy game, using context trees of given depth
+    function Experiment(num_actions, history_length) {
+        this.num_actions = num_actions;
+        this.history_length = history_length;
+    }
+    // Run a single experiment
+    Experiment.prototype.runSingle = function (eta, input) {
+        var learner = new Learner(this.num_actions, eta, this.history_length);
+        var userScore = 0;
+        var learnerScore = 0;
+        // Play each round until someone wins
+        for (var i = 0; i < input.length; i++) {
+            var p = learner.predict(); // Predict
+            var a = parseInt(input[i]); // Observe user action
+            if (p == a) {
+                learnerScore++;
+            }
+            else {
+                userScore++;
+            }
+            // After someone wins, return both resulting scores
+            if (Math.max(userScore, learnerScore) >= 100) {
+                return [userScore, learnerScore];
+            }
+            learner.addAction(a);
+        }
+    };
+    // Run experiments repeatedly, then average the user and learner scores
+    Experiment.prototype.runAverage = function (eta, input, count) {
+        var userSum = 0;
+        var learnerSum = 0;
+        // Run experiments <count> times
+        for (var i = 0; i < count; i++) {
+            var scores = this.runSingle(eta, input);
+            userSum += scores[0];
+            learnerSum += scores[1];
+        }
+        return [userSum / count, learnerSum / count];
+    };
+    // Run experiments, varying etas according to given range
+    Experiment.prototype.runForRange = function (eta_lo, eta_high, eta_step, input, count) {
+        // List all etas in range
+        var etas = [];
+        for (var i = eta_lo; i < eta_high; i += eta_step) {
+            etas.push(i);
+        }
+        return this.run(etas, input, count);
+    };
+    // Run experiments for given etas
+    Experiment.prototype.run = function (etas, input, count) {
+        var userScores = [];
+        var learnerScores = [];
+        // Run all those experiments
+        for (var i = 0; i < etas.length; i++) {
+            var results = this.runAverage(etas[i], input, count);
+            userScores.push(results[0]);
+            learnerScores.push(results[1]);
+        }
+        // Print out the results
+        console.log("etas = [" + etas.toString() + "]\n" +
+            "user = [" + userScores.toString() + "]\n" +
+            "learner = [" + learnerScores.toString() + "]");
+        return [etas, userScores, learnerScores];
+    };
+    // Generate a predictable, cyclic pattern
+    Experiment.generatePattern = function (pattern) {
+        var result = "";
+        while (result.length < 200) {
+            result += pattern;
+        }
+        return result;
+    };
+    // Generate the "omniscient", strategic adversary's input
+    Experiment.prototype.generateAdversary = function () {
+        var table = {};
+        var num_experts = Math.pow(this.num_actions, this.history_length);
+        // Put in empty arrays in each row (all possible histories)
+        for (var i = 0; i < num_experts; i++) {
+            // Generate key (a possible history)
+            var key = i.toString(this.num_actions);
+            while (key.length < this.history_length) {
+                key = "0" + key;
+            }
+            // Add the initial counts (0) to the table
+            table[key] = [];
+            for (var i_1 = 0; i_1 < this.num_actions; i_1++) {
+                table[key].push(0);
+            }
+        }
+        // Set up (initial history, resulting adversarial string)
+        var adversary = "";
+        var history = "";
+        for (var i = 0; i < this.history_length; i++) {
+            adversary += "0";
+            history += "0";
+        }
+        // Add an action one at a time
+        while (adversary.length < 200) {
+            // Choose an action from our options
+            var options = table[history];
+            var action = Experiment._getMinIndex(options);
+            // Increment appropriate cell in table
+            table[history][action]++;
+            // Update adversarial pattern and the history
+            adversary += action;
+            history = history.substring(1) + action;
+        }
+        return adversary;
+    };
+    // Helper function to get index of minimum element in given array
+    Experiment._getMinIndex = function (array) {
+        var min = array[0];
+        var minIndex = 0;
+        for (var i = 0; i < array.length; i++) {
+            if (array[i] < min) {
+                min = array[i];
+                minIndex = i;
+            }
+        }
+        return minIndex;
+    };
+    return Experiment;
+}());

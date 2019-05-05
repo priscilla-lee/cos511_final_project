@@ -2,27 +2,28 @@ class Experiment {
 	public num_actions: number;
 	public history_length: number; 
 
+	// Experiment for an n-strategy game, using context trees of given depth
 	public constructor(num_actions: number, history_length: number) {
 		this.num_actions = num_actions; 
 		this.history_length = history_length; 
 	}
 
-	public run(eta: number, input: string): number[] {
+	// Run a single experiment
+	public runSingle(eta: number, input: string): number[] {
 		const learner = new Learner(this.num_actions, eta, this.history_length);
 
 		let userScore = 0; 
 		let learnerScore = 0; 
 
+		// Play each round until someone wins
 		for (let i = 0; i < input.length; i++) {
-			const a: number = parseInt(input[i]);
-			const p: number = learner.predict();
+			const p: number = learner.predict(); // Predict
+			const a: number = parseInt(input[i]); // Observe user action
 
-			if (p == a) {
-				learnerScore++;
-			} else {
-				userScore++;
-			}
+			if (p == a) { learnerScore++; } 
+			else        { userScore++;    }
 
+			// After someone wins, return both resulting scores
 			if (Math.max(userScore, learnerScore) >= 100) {
 				return [userScore, learnerScore]; 
 			}
@@ -31,34 +32,34 @@ class Experiment {
 		}
 	}
 
-	public runRepeatedly(eta: number, input: string, count: number): number[][] {
-		let results = [];
-		for (let i = 0; i < count; i++) {
-			results.push(this.run(eta, input));		
-		}
-		return results; 
-	}
-
+	// Run experiments repeatedly, then average the user and learner scores
 	public runAverage(eta: number, input: string, count: number): number[] {
-		let results = this.runRepeatedly(eta, input, count);
-
 		let userSum = 0;
 		let learnerSum = 0;
-		for (let i = 0; i < results.length; i++) {
-			userSum += results[i][0];
-			learnerSum += results[i][1];
+		
+		// Run experiments <count> times
+		for (let i = 0; i < count; i++) {
+			const scores = this.runSingle(eta, input);
+			userSum += scores[0];
+			learnerSum += scores[1]; 
 		}
 
-		return [userSum/results.length, learnerSum/results.length];
+		return [userSum/count, learnerSum/count];
 	}
 
-	public outputResults(eta_lo:number, eta_high: number, eta_step: number, input: string, count: number): number[][] {
-		// List etas
+	// Run experiments, varying etas according to given range
+	public runForRange(eta_lo:number, eta_high: number, eta_step: number, input: string, count: number): number[][] {
+		// List all etas in range
 		let etas = [];
 		for (let i = eta_lo; i < eta_high; i += eta_step) {
 			etas.push(i);
 		}
 
+		return this.run(etas, input, count);
+	}
+
+	// Run experiments for given etas
+	public run(etas: number[], input: string, count: number): number[][] {
 		let userScores = [];
 		let learnerScores = [];
 
@@ -69,9 +70,15 @@ class Experiment {
 			learnerScores.push(results[1]);
 		}
 
+		// Print out the results
+		console.log("etas = [" + etas.toString() + "]\n" + 
+								"user = [" + userScores.toString() + "]\n" +
+								"learner = [" + learnerScores.toString() + "]");
+
 		return [etas, userScores, learnerScores];
 	}
 
+	// Generate a predictable, cyclic pattern
 	static generatePattern(pattern: string): string {
 		let result = ""; 
 		while (result.length < 200) {
@@ -80,6 +87,7 @@ class Experiment {
 		return result; 
 	}
 
+	// Generate the "omniscient", strategic adversary's input
 	public generateAdversary(): string {
 		let table = {};
 		const num_experts = Math.pow(this.num_actions, this.history_length);
@@ -124,6 +132,7 @@ class Experiment {
 		return adversary;
 	}
 
+	// Helper function to get index of minimum element in given array
 	static _getMinIndex(array: number[]): number {
 		let min = array[0];
 		let minIndex = 0;
