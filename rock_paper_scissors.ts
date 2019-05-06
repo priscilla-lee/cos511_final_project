@@ -1,5 +1,5 @@
 /******************************************************************************** 
- * Rock, Paper, Scissors game: script that implements interactive online game
+ * Rock, Paper, Scissors game: Script that implements interactive online game
  *******************************************************************************/
 
 // HTML document elements

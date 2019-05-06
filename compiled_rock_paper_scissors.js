@@ -129,19 +129,18 @@ var Learner = /** @class */ (function () {
     return Learner;
 }());
 /********************************************************************************
- *
- *
- *
+ * Experiment: Simulates game given adversary input (allows varying etas).
+ * 						 Generates predictable input and worst-case adversarial input.
  *******************************************************************************/
 var Experiment = /** @class */ (function () {
-    // Experiment for an n-strategy game, using context trees of given depth
-    function Experiment(num_actions, history_length) {
-        this.num_actions = num_actions;
-        this.history_length = history_length;
+    // Experiment for an n-strategy game, using context trees of given depth h
+    function Experiment(n, h) {
+        this.n = n;
+        this.h = h;
     }
     // Run a single experiment
     Experiment.prototype.runSingle = function (eta, input) {
-        var learner = new Learner(this.num_actions, this.history_length, eta);
+        var learner = new Learner(this.n, this.h, eta);
         var userScore = 0;
         var learnerScore = 0;
         // Play each round until someone wins
@@ -199,40 +198,35 @@ var Experiment = /** @class */ (function () {
         return [etas, userScores, learnerScores];
     };
     // Generate a predictable, cyclic pattern
-    Experiment.generatePattern = function (pattern) {
+    Experiment.prototype.generatePattern = function (pattern) {
         var result = "";
         while (result.length < 200) {
             result += pattern;
         }
         return result;
     };
-    // Create a table (rows = experts, columns = actions) for the purposes of 
-    // generating adversaries and simulating adversary
-    Experiment.prototype._createTable = function () {
+    // Generate the "omniscient", strategic adversary's input
+    Experiment.prototype.generateAdversary = function () {
+        // Create table (rows = experts, cols = actions)
         var table = {};
-        var num_experts = Math.pow(this.num_actions, this.history_length);
+        var num_experts = Math.pow(this.n, this.h);
         // Put in empty arrays in each row (all possible histories)
         for (var i = 0; i < num_experts; i++) {
             // Generate key (a possible history)
-            var key = i.toString(this.num_actions);
-            while (key.length < this.history_length) {
+            var key = i.toString(this.n);
+            while (key.length < this.h) {
                 key = "0" + key;
             }
             // Add the initial counts (0) to the table
             table[key] = [];
-            for (var i_1 = 0; i_1 < this.num_actions; i_1++) {
+            for (var i_1 = 0; i_1 < this.n; i_1++) {
                 table[key].push(0);
             }
         }
-        return table;
-    };
-    // Generate the "omniscient", strategic adversary's input
-    Experiment.prototype.generateAdversary = function () {
-        var table = this._createTable();
         // Set up (initial history, resulting adversarial string)
         var adversary = "";
         var history = "";
-        for (var i = 0; i < this.history_length; i++) {
+        for (var i = 0; i < this.h; i++) {
             adversary += "0";
             history += "0";
         }
@@ -253,20 +247,20 @@ var Experiment = /** @class */ (function () {
     Experiment.prototype.simulateAdversary = function (eta) {
         // Store probabilities (of learner winning)
         var pWin = [];
-        for (var i = 0; i < this.history_length; i++) {
-            pWin.push(1 / this.num_actions); // First few are random
+        for (var i = 0; i < this.h; i++) {
+            pWin.push(1 / this.n); // First few are random
         }
         // Create learner (to simulate playing against)
-        var learner = new Learner(this.num_actions, this.history_length, eta);
+        var learner = new Learner(this.n, this.h, eta);
         // Set up the initial history
         var history = "";
-        for (var i = 0; i < this.history_length; i++) {
+        for (var i = 0; i < this.h; i++) {
             history += "0";
             learner.observeAction(0);
         }
         // Simulate playing against adversary
         var adversary = this.generateAdversary();
-        for (var i = this.history_length; i < adversary.length; i++) {
+        for (var i = this.h; i < adversary.length; i++) {
             // Consider the probabilities the learner is using to make prediction on this round
             var probs = learner.getActionProbabilities(history);
             // Observe action
@@ -278,11 +272,6 @@ var Experiment = /** @class */ (function () {
             history = history.substring(1) + a;
         }
         return pWin;
-    };
-    // Normalize an input array of numbers (sum to 1)
-    Experiment.prototype._normalize = function (counts) {
-        var sum = counts.reduce(function (a, b) { return a + b; }, 0);
-        return counts.map(function (p) { return p / sum; });
     };
     // Helper function to get index of minimum element in given array
     Experiment._getMinIndex = function (array) {
@@ -321,9 +310,7 @@ var ProgressBar = /** @class */ (function () {
     return ProgressBar;
 }());
 /********************************************************************************
- *
- *
- *
+ * Rock, Paper, Scissors game: Script that implements interactive online game
  *******************************************************************************/
 // HTML document elements
 var uPenny = document.getElementById("userPenny");
