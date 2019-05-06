@@ -69,19 +69,18 @@ var Learner = /** @class */ (function () {
     // Observe user action, and update weights according to the 
     // multiplicative weights algorithm (page 156 in textbook)
     Learner.prototype.observeAction = function (action) {
-        // If we don't have enough history, ignore
-        if (this.actions.length < this.h) {
-            return;
-        }
-        // Update weights: (only) penalize experts that made mistakes
-        for (var i = 0; i < this.weights.length; i++) {
-            if (this.experts[i].predict(this._getHistory()) != action) {
-                // bigger eta --> harsher penalty
-                this.weights[i] = this.weights[i] * Math.pow(Math.E, -this.eta);
+        // Update weights (only) if we have enough history
+        if (this.actions.length >= this.h) {
+            // Update weights: (only) penalize experts that made mistakes
+            for (var i = 0; i < this.weights.length; i++) {
+                if (this.experts[i].predict(this._getHistory()) != action) {
+                    // bigger eta --> harsher penalty
+                    this.weights[i] = this.weights[i] * Math.pow(Math.E, -this.eta);
+                }
             }
+            // Finally, normalize weights
+            this.weights = this._normalize(this.weights);
         }
-        // Finally, normalize weights
-        this.weights = this._normalize(this.weights);
         // Add to list of user actions
         this.actions.push(action);
     };
