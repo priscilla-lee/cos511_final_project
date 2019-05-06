@@ -1,41 +1,20 @@
 /********************************************************************************
- *
- *
- *
- *******************************************************************************/
-var ProgressBar = /** @class */ (function () {
-    function ProgressBar(POV, color) {
-        var canvas = document.getElementById(POV + "Canvas");
-        canvas.height = 100;
-        canvas.width = 100;
-        this.ctx = canvas.getContext("2d");
-        this.ctx.fillStyle = color;
-        this.bar = 0;
-    }
-    ProgressBar.prototype.fill = function () {
-        this.ctx.fillRect(this.bar, 0, 1, 100);
-        this.bar++;
-    };
-    return ProgressBar;
-}());
-/********************************************************************************
- *
- *
- *
+ * Expert: Implements a context-tree expert (a decision tree based on context).
+ *         Represents each expert as an n-ary string (labelings for leaves).
  *******************************************************************************/
 var Expert = /** @class */ (function () {
-    // Construct expert i
-    function Expert(i, n_actions, history_length) {
-        this.num_actions = n_actions;
+    // Construct expert i (context-tree with n^h leaves)
+    function Expert(i, n, h) {
+        this.n = n;
         this.number = i; // col number
-        this.predictions = i.toString(n_actions);
-        while (this.predictions.length < Math.pow(n_actions, history_length)) {
+        this.predictions = i.toString(n);
+        while (this.predictions.length < Math.pow(n, h)) {
             this.predictions = "0" + this.predictions;
         }
     }
     // Prediction of expert i given history (e.g. "101")
     Expert.prototype.predict = function (history) {
-        var row = parseInt(history, this.num_actions);
+        var row = parseInt(history, this.n);
         return parseInt(this.predictions[row]);
     };
     return Expert;
@@ -61,6 +40,11 @@ var Learner = /** @class */ (function () {
             this.experts.push(new Expert(i, n, h));
             this.weights.push(1 / num_experts); // uniform probability
         }
+        // Construct uniform weights (pre-computed for computational efficiency)
+        this._uniform = [];
+        for (var i = 0; i < this.n; i++) {
+            this._uniform.push(1);
+        }
     }
     // Helper method to get the history (h most recent actions)
     Learner.prototype._getHistory = function () {
@@ -82,8 +66,9 @@ var Learner = /** @class */ (function () {
         this.predictions.push(p);
         return p;
     };
-    // Update according to multiplicative weights algorithm (page 156 in textbook)
-    Learner.prototype._updateExpertWeights = function (action) {
+    // Observe user action, and update weights according to the 
+    // multiplicative weights algorithm (page 156 in textbook)
+    Learner.prototype.observeAction = function (action) {
         // If we don't have enough history, ignore
         if (this.actions.length < this.h) {
             return;
@@ -97,10 +82,7 @@ var Learner = /** @class */ (function () {
         }
         // Finally, normalize weights
         this.weights = this._normalize(this.weights);
-    };
-    // Observe user action, update weights
-    Learner.prototype.observeAction = function (action) {
-        this._updateExpertWeights(action);
+        // Add to list of user actions
         this.actions.push(action);
     };
     // Get the learner's current probabilities of s
@@ -118,13 +100,7 @@ var Learner = /** @class */ (function () {
     };
     // Random prediction: uniformly (e.g. 1/2 heads, 1/2 tails)
     Learner.prototype._predictRandomly = function () {
-        // Construct uniform weights
-        var uniform = [];
-        for (var i = 0; i < this.n; i++) {
-            uniform.push(1);
-        }
-        // Predict according to that uniform discrete distribution
-        return this._discrete(uniform);
+        return this._discrete(this._uniform);
     };
     // Randomly choose an index given array of probabilities
     Learner.prototype._discrete = function (weights) {
@@ -152,87 +128,6 @@ var Learner = /** @class */ (function () {
     };
     return Learner;
 }());
-/********************************************************************************
- *
- *
- *
- *******************************************************************************/
-// HTML document elements
-var uPenny = document.getElementById("userPenny");
-var lPenny = document.getElementById("learnerPenny");
-var uScore = document.getElementById("userScore");
-var lScore = document.getElementById("learnerScore");
-var gameover = document.getElementById("gameover");
-var user = document.getElementById("user");
-var learner = document.getElementById("learner");
-// Create learner and set scores to 0
-var l = new Learner(2, 3, 0.5); // <-- matching pennies
-var userScore = 0;
-var learnerScore = 0;
-// Display dummy pennies and starting progress bar
-uPenny.setAttribute("src", "heads_dummy.jpg");
-lPenny.setAttribute("src", "tails_dummy.jpg");
-var userPB = new ProgressBar("user", "#008CBA");
-var learnerPB = new ProgressBar("learner", "#ff471a");
-window.onkeydown = function (e) {
-    // Get keypress
-    var action = 1;
-    if (e.keyCode == 37) {
-        action = 0;
-    } // left = heads = 0
-    else if (e.keyCode == 39) {
-        action = 1;
-    } // right = tails = 1
-    else {
-        return;
-    }
-    // Hide labels
-    user.style.display = "none";
-    learner.style.display = "none";
-    // Get learner prediction, observe user action
-    var prediction = l.predict();
-    l.observeAction(action);
-    // Display pennies
-    if (action == 0) {
-        uPenny.setAttribute("src", "heads.jpg");
-    }
-    else {
-        uPenny.setAttribute("src", "tails.jpg");
-    }
-    if (prediction == 0) {
-        lPenny.setAttribute("src", "heads.jpg");
-    }
-    else {
-        lPenny.setAttribute("src", "tails.jpg");
-    }
-    // Display a score
-    if (prediction == action) {
-        learnerScore++;
-        learnerPB.fill();
-    }
-    else {
-        userScore++;
-        userPB.fill();
-    }
-    uScore.innerHTML = "" + userScore;
-    lScore.innerHTML = "" + learnerScore;
-    // Display "You won" or "Computer won" if game over
-    if (Math.max(userScore, learnerScore) >= 100) {
-        if (userScore > learnerScore) {
-            gameover.innerHTML = "You won!";
-            gameover.style.color = "#008CBA";
-        }
-        else {
-            gameover.innerHTML = "The computer won!";
-            gameover.style.color = "#ff471a";
-        }
-        // Display game over, ignore keypresses
-        gameover.style.display = "block";
-        window.onkeydown = function (e) { };
-        uPenny.setAttribute("src", "heads_dummy.jpg");
-        lPenny.setAttribute("src", "tails_dummy.jpg");
-    }
-};
 /********************************************************************************
  *
  *
@@ -403,3 +298,104 @@ var Experiment = /** @class */ (function () {
     };
     return Experiment;
 }());
+/********************************************************************************
+ * ProgressBar: Visual component representing the current game score
+ *******************************************************************************/
+var ProgressBar = /** @class */ (function () {
+    // Constructor: progress bar for "user" or "learner" (POV for point of view)
+    function ProgressBar(POV, color) {
+        // Get canvas, set dimensions
+        var canvas = document.getElementById(POV + "Canvas");
+        canvas.height = 100;
+        canvas.width = 100;
+        // Set up contex, color, and initial bar
+        this.ctx = canvas.getContext("2d");
+        this.ctx.fillStyle = color;
+        this.bar = 0;
+    }
+    // Fill the progress bar a little bit (by 1%)
+    ProgressBar.prototype.fill = function () {
+        this.ctx.fillRect(this.bar, 0, 1, 100);
+        this.bar++;
+    };
+    return ProgressBar;
+}());
+/********************************************************************************
+ * Matching Pennies game: script that implements interactive online game
+ *******************************************************************************/
+// HTML document elements
+var uPenny = document.getElementById("userPenny");
+var lPenny = document.getElementById("learnerPenny");
+var uScore = document.getElementById("userScore");
+var lScore = document.getElementById("learnerScore");
+var gameover = document.getElementById("gameover");
+var user = document.getElementById("user");
+var learner = document.getElementById("learner");
+// Create learner and set scores to 0
+var l = new Learner(2, 3, 0.5); // <-- matching pennies
+var userScore = 0;
+var learnerScore = 0;
+// Display dummy pennies and starting progress bar
+uPenny.setAttribute("src", "heads_dummy.jpg");
+lPenny.setAttribute("src", "tails_dummy.jpg");
+var userPB = new ProgressBar("user", "#008CBA");
+var learnerPB = new ProgressBar("learner", "#ff471a");
+window.onkeydown = function (e) {
+    // Get keypress
+    var action = 1;
+    if (e.keyCode == 37) {
+        action = 0;
+    } // left = heads = 0
+    else if (e.keyCode == 39) {
+        action = 1;
+    } // right = tails = 1
+    else {
+        return;
+    }
+    // Hide labels
+    user.style.display = "none";
+    learner.style.display = "none";
+    // Get learner prediction, observe user action
+    var prediction = l.predict();
+    l.observeAction(action);
+    // Display pennies
+    if (action == 0) {
+        uPenny.setAttribute("src", "heads.jpg");
+    }
+    else {
+        uPenny.setAttribute("src", "tails.jpg");
+    }
+    if (prediction == 0) {
+        lPenny.setAttribute("src", "heads.jpg");
+    }
+    else {
+        lPenny.setAttribute("src", "tails.jpg");
+    }
+    // Display a score
+    if (prediction == action) {
+        learnerScore++;
+        learnerPB.fill();
+    }
+    else {
+        userScore++;
+        userPB.fill();
+    }
+    uScore.innerHTML = "" + userScore;
+    lScore.innerHTML = "" + learnerScore;
+    // Display "You won" or "Computer won" if game over
+    if (Math.max(userScore, learnerScore) >= 100) {
+        if (userScore > learnerScore) {
+            gameover.innerHTML = "You won!";
+            gameover.style.color = "#008CBA";
+        }
+        else {
+            gameover.innerHTML = "The computer won!";
+            gameover.style.color = "#ff471a";
+        }
+        // Display game over, ignore keypresses
+        gameover.style.display = "block";
+        window.onkeydown = function (e) { };
+        uPenny.setAttribute("src", "heads_dummy.jpg");
+        lPenny.setAttribute("src", "tails_dummy.jpg");
+    }
+};

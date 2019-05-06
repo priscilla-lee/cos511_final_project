@@ -1,7 +1,5 @@
 /******************************************************************************** 
- * 
- * 
- *
+ * Matching Pennies game: script that implements interactive online game
  *******************************************************************************/
 
 // HTML document elements

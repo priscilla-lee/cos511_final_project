@@ -1,41 +1,20 @@
 /********************************************************************************
- *
- *
- *
- *******************************************************************************/
-var ProgressBar = /** @class */ (function () {
-    function ProgressBar(POV, color) {
-        var canvas = document.getElementById(POV + "Canvas");
-        canvas.height = 100;
-        canvas.width = 100;
-        this.ctx = canvas.getContext("2d");
-        this.ctx.fillStyle = color;
-        this.bar = 0;
-    }
-    ProgressBar.prototype.fill = function () {
-        this.ctx.fillRect(this.bar, 0, 1, 100);
-        this.bar++;
-    };
-    return ProgressBar;
-}());
-/********************************************************************************
- *
- *
- *
+ * Expert: Implements a context-tree expert (a decision tree based on context).
+ *         Represents each expert as an n-ary string (labelings for leaves).
  *******************************************************************************/
 var Expert = /** @class */ (function () {
-    // Construct expert i
-    function Expert(i, n_actions, history_length) {
-        this.num_actions = n_actions;
+    // Construct expert i (context-tree with n^h leaves)
+    function Expert(i, n, h) {
+        this.n = n;
         this.number = i; // col number
-        this.predictions = i.toString(n_actions);
-        while (this.predictions.length < Math.pow(n_actions, history_length)) {
+        this.predictions = i.toString(n);
+        while (this.predictions.length < Math.pow(n, h)) {
             this.predictions = "0" + this.predictions;
         }
     }
     // Prediction of expert i given history (e.g. "101")
     Expert.prototype.predict = function (history) {
-        var row = parseInt(history, this.num_actions);
+        var row = parseInt(history, this.n);
         return parseInt(this.predictions[row]);
     };
     return Expert;
@@ -149,103 +128,6 @@ var Learner = /** @class */ (function () {
     };
     return Learner;
 }());
-/********************************************************************************
- *
- *
- *
- *******************************************************************************/
-// HTML document elements
-var uPenny = document.getElementById("userPenny");
-var lPenny = document.getElementById("learnerPenny");
-var uScore = document.getElementById("userScore");
-var lScore = document.getElementById("learnerScore");
-var gameover = document.getElementById("gameover");
-var user = document.getElementById("user");
-var learner = document.getElementById("learner");
-// Create learner and set scores to 0
-var l = new Learner(3, 2, 0.5); // <-- rock, paper, scissors
-var userScore = 0;
-var learnerScore = 0;
-// Display dummy pennies and starting progress bar
-uPenny.setAttribute("src", "rock_dummy.jpg");
-lPenny.setAttribute("src", "paper_dummy.jpg");
-var userPB = new ProgressBar("user", "#008CBA");
-var learnerPB = new ProgressBar("learner", "#ff471a");
-function winningPrediction(action) {
-    if (action == 0)
-        return 1;
-    if (action == 1)
-        return 2;
-    return 0;
-}
-window.onkeydown = function (e) {
-    // Get keypress
-    var action = 1;
-    if (e.keyCode == 82) {
-        action = 0;
-    } // r = rock = 0
-    else if (e.keyCode == 80) {
-        action = 1;
-    } // p = paper = 1
-    else if (e.keyCode == 83) {
-        action = 2;
-    } // s = scissors = 2
-    else {
-        return;
-    }
-    // Hide labels
-    user.style.display = "none";
-    learner.style.display = "none";
-    // Get learner prediction, observe user action
-    var prediction = l.predict();
-    l.observeAction(winningPrediction(action));
-    // Display pennies
-    if (action == 0) {
-        uPenny.setAttribute("src", "rock.jpg");
-    }
-    else if (action == 1) {
-        uPenny.setAttribute("src", "paper.jpg");
-    }
-    else {
-        uPenny.setAttribute("src", "scissors.jpg");
-    }
-    if (prediction == 0) {
-        lPenny.setAttribute("src", "rock.jpg");
-    }
-    else if (prediction == 1) {
-        lPenny.setAttribute("src", "paper.jpg");
-    }
-    else {
-        lPenny.setAttribute("src", "scissors.jpg");
-    }
-    // Display a score
-    if (prediction == winningPrediction(action)) {
-        learnerScore++;
-        learnerPB.fill();
-    }
-    else if (action == winningPrediction(prediction)) {
-        userScore++;
-        userPB.fill();
-    }
-    uScore.innerHTML = "" + userScore;
-    lScore.innerHTML = "" + learnerScore;
-    // Display "You won" or "Computer won" if game over
-    if (Math.max(userScore, learnerScore) >= 100) {
-        if (userScore > learnerScore) {
-            gameover.innerHTML = "You won!";
-            gameover.style.color = "#008CBA";
-        }
-        else {
-            gameover.innerHTML = "The computer won!";
-            gameover.style.color = "#ff471a";
-        }
-        // Display game over, ignore keypresses
-        gameover.style.display = "block";
-        window.onkeydown = function (e) { };
-        uPenny.setAttribute("src", "rock_dummy.jpg");
-        lPenny.setAttribute("src", "paper_dummy.jpg");
-    }
-};
 /********************************************************************************
  *
  *
@@ -416,3 +298,122 @@ var Experiment = /** @class */ (function () {
     };
     return Experiment;
 }());
+/********************************************************************************
+ * ProgressBar: Visual component representing the current game score
+ *******************************************************************************/
+var ProgressBar = /** @class */ (function () {
+    // Constructor: progress bar for "user" or "learner" (POV for point of view)
+    function ProgressBar(POV, color) {
+        // Get canvas, set dimensions
+        var canvas = document.getElementById(POV + "Canvas");
+        canvas.height = 100;
+        canvas.width = 100;
+        // Set up contex, color, and initial bar
+        this.ctx = canvas.getContext("2d");
+        this.ctx.fillStyle = color;
+        this.bar = 0;
+    }
+    // Fill the progress bar a little bit (by 1%)
+    ProgressBar.prototype.fill = function () {
+        this.ctx.fillRect(this.bar, 0, 1, 100);
+        this.bar++;
+    };
+    return ProgressBar;
+}());
+/********************************************************************************
+ *
+ *
+ *
+ *******************************************************************************/
+// HTML document elements
+var uPenny = document.getElementById("userPenny");
+var lPenny = document.getElementById("learnerPenny");
+var uScore = document.getElementById("userScore");
+var lScore = document.getElementById("learnerScore");
+var gameover = document.getElementById("gameover");
+var user = document.getElementById("user");
+var learner = document.getElementById("learner");
+// Create learner and set scores to 0
+var l = new Learner(3, 2, 0.5); // <-- rock, paper, scissors
+var userScore = 0;
+var learnerScore = 0;
+// Display dummy pennies and starting progress bar
+uPenny.setAttribute("src", "rock_dummy.jpg");
+lPenny.setAttribute("src", "paper_dummy.jpg");
+var userPB = new ProgressBar("user", "#008CBA");
+var learnerPB = new ProgressBar("learner", "#ff471a");
+function winningPrediction(action) {
+    if (action == 0)
+        return 1;
+    if (action == 1)
+        return 2;
+    return 0;
+}
+window.onkeydown = function (e) {
+    // Get keypress
+    var action = 1;
+    if (e.keyCode == 82) {
+        action = 0;
+    } // r = rock = 0
+    else if (e.keyCode == 80) {
+        action = 1;
+    } // p = paper = 1
+    else if (e.keyCode == 83) {
+        action = 2;
+    } // s = scissors = 2
+    else {
+        return;
+    }
+    // Hide labels
+    user.style.display = "none";
+    learner.style.display = "none";
+    // Get learner prediction, observe user action
+    var prediction = l.predict();
+    l.observeAction(winningPrediction(action));
+    // Display pennies
+    if (action == 0) {
+        uPenny.setAttribute("src", "rock.jpg");
+    }
+    else if (action == 1) {
+        uPenny.setAttribute("src", "paper.jpg");
+    }
+    else {
+        uPenny.setAttribute("src", "scissors.jpg");
+    }
+    if (prediction == 0) {
+        lPenny.setAttribute("src", "rock.jpg");
+    }
+    else if (prediction == 1) {
+        lPenny.setAttribute("src", "paper.jpg");
+    }
+    else {
+        lPenny.setAttribute("src", "scissors.jpg");
+    }
+    // Display a score
+    if (prediction == winningPrediction(action)) {
+        learnerScore++;
+        learnerPB.fill();
+    }
+    else if (action == winningPrediction(prediction)) {
+        userScore++;
+        userPB.fill();
+    }
+    uScore.innerHTML = "" + userScore;
+    lScore.innerHTML = "" + learnerScore;
+    // Display "You won" or "Computer won" if game over
+    if (Math.max(userScore, learnerScore) >= 100) {
+        if (userScore > learnerScore) {
+            gameover.innerHTML = "You won!";
+            gameover.style.color = "#008CBA";
+        }
+        else {
+            gameover.innerHTML = "The computer won!";
+            gameover.style.color = "#ff471a";
+        }
+        // Display game over, ignore keypresses
+        gameover.style.display = "block";
+        window.onkeydown = function (e) { };
+        uPenny.setAttribute("src", "rock_dummy.jpg");
+        lPenny.setAttribute("src", "paper_dummy.jpg");
+    }
+};
