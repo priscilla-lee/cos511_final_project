@@ -1,3 +1,9 @@
+/******************************************************************************** 
+ * 
+ * 
+ *
+ *******************************************************************************/
+
 // HTML document elements
 const uPenny = document.getElementById("userPenny");
 const lPenny = document.getElementById("learnerPenny");
@@ -8,7 +14,7 @@ const user = document.getElementById("user");
 const learner = document.getElementById("learner");
 
 // Create learner and set scores to 0
-const l = new Learner(3, 0.5, 2); // <-- rock, paper, scissors
+const l = new Learner(3, 2, 0.5); // <-- rock, paper, scissors
 let userScore = 0;
 let learnerScore = 0;
 
@@ -38,7 +44,7 @@ window.onkeydown = function(e) {
 
   // Get learner prediction, observe user action
   const prediction = l.predict();
-  l.addAction(winningPrediction(action));
+  l.observeAction(winningPrediction(action));
 
   // Display pennies
   if (action == 0)      { uPenny.setAttribute("src", "rock.jpg"); }

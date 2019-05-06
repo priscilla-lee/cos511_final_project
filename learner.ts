@@ -1,64 +1,69 @@
+/******************************************************************************** 
+ * 
+ * 
+ *
+ *******************************************************************************/
+ 
 class Learner {
   public actions: number[]; // 0 (heads) or 1 (tails)
   public predictions: number[]; // 0 or 1
 
-  // (Option 1) 2 experts
-  public weights: number[]; 
-  public probability: number[];
-  public eta: number;
-
-  // (Option 2) 256 experts with context trees
-  public experts: Expert[]; 
-  public Pt: number[];
+  // Learner parameters
+  public n: number; // number of actions
   public h: number; // history length
+  public eta: number; // learning rate
 
-  // Constructor: store actions, predictions, weights, and p's
-  public constructor(num_actions: number, eta: number, history_length: number) {
+  // Context tree experts and their weights
+  public experts: Expert[];
+  public weights: number[];
+
+  // Constructor: number of actions (n), history/context length (h), learning rate (eta)
+  public constructor(n: number, h: number, eta: number) {
     this.actions = [];
     this.predictions = [];
+
+    this.n = n;
+    this.h = h;
     this.eta = eta;
 
-    // (Option 1) 2 experts
-    this.weights = [];
-    this.probability = [];
-    for (let i = 0; i < num_actions; i++) {
-      this.weights.push(1);
-      this.probability.push(1/num_actions); // uniform probability
-    }
-
-    // (Option 2) 256 (or 19683) experts with context trees
-    const num_experts = Math.pow(num_actions, Math.pow(num_actions, history_length));
-    this.h = history_length;
     this.experts = [];
-    this.Pt = [];
+    this.weights = [];
+
+    // Enumerate experts and set uniform weights
+    const num_experts = Math.pow(n, Math.pow(n, h)); // e.g. 256 (or 19683)
     for (let i = 0; i < num_experts; i++) {
-      this.experts.push(new Expert(i, num_actions, history_length));
-      this.Pt.push(1/num_experts); // uniform probability
+      this.experts.push(new Expert(i, n, h));
+      this.weights.push(1/num_experts); // uniform probability
     }
   }
 
   // Predict according to algorithm
   public predict(): number {
-    const p = /*Option 2*/ this._predictExpertly(); 
-         // = /*Option 1*/ this._predictProbabilistically();
+    const p = this._predictExpertly(); 
     this.predictions.push(p);
-
-    // console.log("     user: " + this.actions);
-    // console.log("  learner: " + this.predictions);
-    // console.log("  weights: " + this.weights);
-
     return p;
   }
 
   // Observe user action, update weights
-  public addAction(action: number): void {
-    /*Option 2*/ this._updateExpertWeights(action);
-    //Option 1   this._updateMultiplicativeWeights(action);
-
+  public observeAction(action: number): void {
+    this._updateExpertWeights(action);
     this.actions.push(action);
+  }
 
-    // console.log("updated p: " + this.probability);
-    // console.log("");
+  // Get the learner's current probabilities of s
+  public getProbabilitiesOfActions(history: string): number[] {
+    let probs = [];
+    for (let i = 0; i < this.n; i++) {
+      probs.push(0);
+    }
+
+    // Sum up probabilities (across experts who would've predicted that action)
+    for (let i = 0; i < this.experts.length; i++) {
+      const e = this.experts[i];
+      probs[e.predict(history)] += this.weights[i];
+    }
+
+    return probs;
   }
 
   /* -------------------------------------------------------
@@ -73,47 +78,31 @@ class Learner {
     // Get h most recent actions (history)
     const history = this.actions.join("").substring(this.actions.length-this.h);
 
-    // Update Pt: (only) penalize experts that made mistakes
-    for (let i = 0; i < this.Pt.length; i++) {
+    // Update weights: (only) penalize experts that made mistakes
+    for (let i = 0; i < this.weights.length; i++) {
       if (this.experts[i].predict(history) != action) {
         // bigger eta --> harsher penalty
-        this.Pt[i] = this.Pt[i] * Math.pow(Math.E, -this.eta);
+        this.weights[i] = this.weights[i] * Math.pow(Math.E, -this.eta);
       }
     }
 
-    // Finally, normalize Pt
-    this.Pt = this._normalize(this.Pt);
-  }
-
-  // Multiplicative weights algorithm: update rule
-  private _updateMultiplicativeWeights(action: number): void {
-    // update weights vector
-    this.weights[0] *= (1 + this.eta * this._reward(action, 0));
-    this.weights[1] *= (1 + this.eta * this._reward(action, 1));
-
-    // update probability vector
-    this.probability = this._normalize(this.weights);
-  }
-
-  // Simple algorithm: counts and proportions
-  private _updateCounts(action: number): void {
-    this.weights[action]++;
-    this.probability = this._normalize(this.weights);
+    // Finally, normalize weights
+    this.weights = this._normalize(this.weights);
   }
 
   /* -------------------------------------------------------
                       Prediction algorithms
   ------------------------------------------------------- */
 
-  // Expert prediction: choose prediction of expert according to Pt
+  // Expert prediction: choose prediction of expert according to weights
   private _predictExpertly(): number {
     // If we don't have enough history, just predict randomly
     if (this.actions.length < this.h) { 
       return this._predictRandomly();
     }
 
-    // Choose expert randomly (according to Pt)
-    const index = this._discrete(this.Pt);
+    // Choose expert randomly (according to weights)
+    const index = this._discrete(this.weights);
     const expert = this.experts[index];
 
     // Get h most recent actions (history)
@@ -121,16 +110,6 @@ class Learner {
     
     // Return the prediction of the chosen expert, given the history
     return expert.predict(history);
-  }
-
-  // Simple prediction: predict according to probability
-  private _predictProbabilistically(): number {
-    return +!(Math.random() < this.probability[0]);
-  }
-
-  // Stupid prediction: predict action with higher probability
-  private _predictDeterministically(): number {
-    return +!(this.probability[0] > this.probability[1]);
   }
 
   // Random prediction: 1/2 heads, 1/2 tails
@@ -141,12 +120,6 @@ class Learner {
   /* -------------------------------------------------------
         Helper functions (with probability distributions)
   ------------------------------------------------------- */
-
-  // Reward: 1 if same, -1 if different/mistake
-  private _reward(action: number, prediction: number) {
-    if (action == prediction) return 1;
-    else return -1;
-  }
 
   // Randomly choose an index given array of probabilities
   private _discrete(probabilities: number[]): number {
@@ -177,5 +150,4 @@ class Learner {
     const sum = probabilities.reduce((a, b) => a + b, 0);
     return probabilities.map(p => p / sum);
   }
-
 }

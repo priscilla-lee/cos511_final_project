@@ -1,3 +1,9 @@
+/******************************************************************************** 
+ * 
+ * 
+ *
+ *******************************************************************************/
+
 class Experiment {
 	public num_actions: number;
 	public history_length: number; 
@@ -10,7 +16,7 @@ class Experiment {
 
 	// Run a single experiment
 	public runSingle(eta: number, input: string): number[] {
-		const learner = new Learner(this.num_actions, eta, this.history_length);
+		const learner = new Learner(this.num_actions, this.history_length, eta);
 
 		let userScore = 0; 
 		let learnerScore = 0; 
@@ -28,7 +34,7 @@ class Experiment {
 				return [userScore, learnerScore]; 
 			}
 
-			learner.addAction(a); 
+			learner.observeAction(a); 
 		}
 	}
 
@@ -87,8 +93,9 @@ class Experiment {
 		return result; 
 	}
 
-	// Generate the "omniscient", strategic adversary's input
-	public generateAdversary(): string {
+	// Create a table (rows = experts, columns = actions) for the purposes of 
+	// generating adversaries and simulating adversary
+	private _createTable() {
 		let table = {};
 		const num_experts = Math.pow(this.num_actions, this.history_length);
 
@@ -106,6 +113,13 @@ class Experiment {
 				table[key].push(0);
 			}
 		}
+
+		return table;
+	}
+
+	// Generate the "omniscient", strategic adversary's input
+	public generateAdversary(): string {
+		let table = this._createTable();
 
 		// Set up (initial history, resulting adversarial string)
 		let adversary = ""; 
@@ -131,6 +145,50 @@ class Experiment {
 
 		return adversary;
 	}
+
+	// Return a list of probabilities that the learner wins on round t
+	public simulateAdversary(eta: number): number[] {
+		// Store probabilities (of learner winning)
+		let pWin = [];
+		for (let i = 0; i < this.history_length; i++) {
+			pWin.push(1 / this.num_actions); // First few are random
+		}
+
+		// Create learner (to simulate playing against)
+		const learner = new Learner(this.num_actions, this.history_length, eta);
+
+		// Set up the initial history
+		let history = "";
+		for (let i = 0; i < this.history_length; i++) {
+			history += "0";
+			learner.observeAction(0);
+		}
+
+		// Simulate playing against adversary
+		const adversary = this.generateAdversary();
+		for (let i = this.history_length; i < adversary.length; i++) {
+			// Consider the probabilities the learner is using to make prediction on this round
+			const probs = learner.getProbabilitiesOfActions(history);
+
+			// Observe action
+			const a: number = parseInt(adversary[i]);
+			learner.observeAction(a);
+
+			// Calculate probability of winning
+			pWin.push(probs[a])
+
+			// Update history
+			history = history.substring(1) + a;
+		}
+
+		return pWin;
+	}
+
+	// Normalize an input array of numbers (sum to 1)
+  private _normalize(counts: number[]): number[] {
+    const sum = counts.reduce((a, b) => a + b, 0);
+    return counts.map(p => p / sum);
+  }
 
 	// Helper function to get index of minimum element in given array
 	static _getMinIndex(array: number[]): number {

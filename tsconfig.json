@@ -1,12 +1,12 @@
 {
     "compilerOptions": {
-        "outFile": "compiled_matching_pennies.js"
+        "outFile": "compiled_rock_paper_scissors.js"
     },
     "files": [
         "progress_bar.ts",
         "expert.ts",
         "learner.ts",
-        "matching_pennies.ts",
+        "rock_paper_scissors.ts",
         "experiment.ts"
     ]
 }
