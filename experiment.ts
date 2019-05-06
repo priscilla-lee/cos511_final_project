@@ -52,35 +52,98 @@ class Experiment {
 		return [userSum/count, learnerSum/count];
 	}
 
-	// Run experiments, varying etas according to given range
-	public runForRange(eta_lo:number, eta_high: number, eta_step: number, input: string, count: number): number[][] {
-		// List all etas in range
-		let etas = [];
-		for (let i = eta_lo; i < eta_high; i += eta_step) {
-			etas.push(i);
+
+	// Return expected final scores when simulating play against adversary
+	public simulate(eta: number, input: string): number[] {
+		// Store probabilities of learner winning
+		let learnerWin = [];
+		for (let i = 0; i < this.h; i++) {
+			learnerWin.push(1 / this.n); // First few are random
 		}
 
-		return this.run(etas, input, count);
+		// Create learner (to simulate playing against)
+		const learner = new Learner(this.n, this.h, eta);
+
+		// Set up the initial history
+		let history = "";
+		for (let i = 0; i < this.h; i++) {
+			history += "0";
+			learner.observeAction(0);
+		}
+
+		// Simulate playing against adversary
+		for (let i = this.h; i < input.length; i++) {
+			// Consider the probabilities the learner is using to make prediction on this round
+			const probs = learner.getActionProbabilities(history);
+
+			// Observe action
+			const a: number = parseInt(input[i]);
+			learner.observeAction(a);
+
+			// Calculate probability of winning
+			learnerWin.push(probs[a])
+
+			// Update history
+			history = history.substring(1) + a;
+		}
+
+		// Calculate probabilities of adversary winning
+		let userWin = [];
+		for (let i = 0; i < learnerWin.length; i++) {
+			userWin.push(1 - learnerWin[i]);
+		}
+
+		// Calculate expected scores after each round
+		let userScores = Experiment._cumsum(userWin);
+		let learnerScores = Experiment._cumsum(learnerWin);
+
+		// Find gameover round T (whoever gets to 100 first)
+		const U = Experiment._argwhere(userScores, x => x > 99.5);
+		const L = Experiment._argwhere(learnerScores, x => x > 99.5);
+		const T = Math.min(U, L);
+
+		// Return expected final scores at the end of the game
+		return [userScores[T], learnerScores[T]];
 	}
 
-	// Run experiments for given etas
+	// Run experiments for given etas (count = 0 --> simulate)
 	public run(etas: number[], input: string, count: number): number[][] {
 		let userScores = [];
 		let learnerScores = [];
+		let rounds = [];
+		let userPercent = [];
+		let learnerPercent = [];
 
 		// Run all those experiments
 		for (let i = 0; i < etas.length; i++) {
-			const results = this.runAverage(etas[i], input, count);
-			userScores.push(results[0]);
-			learnerScores.push(results[1]);
+			let results = [-1, -1];
+
+			// Compute expectation or compute Monte Carlo average
+			if (count == 0) { 
+				results = this.simulate(etas[i], input);
+			} else { 
+				results = this.runAverage(etas[i], input, count);
+			}
+
+			const u = results[0];
+			const l = results[1];
+
+			userScores.push(u);
+			learnerScores.push(l);
+			rounds.push(u + l);
+			userPercent.push(u / (u + l) * 100);
+			learnerPercent.push(l / (u + l) * 100);
 		}
 
 		// Print out the results
 		console.log("etas = [" + etas.toString() + "]\n" + 
 								"user = [" + userScores.toString() + "]\n" +
-								"learner = [" + learnerScores.toString() + "]");
+								"learner = [" + learnerScores.toString() + "]\n" +
+								"rounds = [" + rounds.toString() + "]\n" +
+								"user % = [" + userPercent.toString() + "]\n" +
+								"learner % = [" + learnerPercent.toString() + "]");
 
-		return [etas, userScores, learnerScores];
+		return [etas, userScores, learnerScores, rounds, userPercent, learnerPercent];
 	}
 
 	// Generate a predictable, cyclic pattern
@@ -125,7 +188,7 @@ class Experiment {
 		while (adversary.length < 200) {
 			// Choose an action from our options
 			const options: number[] = table[history];
-			const action: number = Experiment._getMinIndex(options);
+			const action: number = Experiment._argmin(options);
 
 			// Increment appropriate cell in table
 			table[history][action]++;
@@ -138,46 +201,8 @@ class Experiment {
 		return adversary;
 	}
 
-	// Return a list of probabilities that the learner wins on round t
-	public simulateAdversary(eta: number): number[] {
-		// Store probabilities (of learner winning)
-		let pWin = [];
-		for (let i = 0; i < this.h; i++) {
-			pWin.push(1 / this.n); // First few are random
-		}
-
-		// Create learner (to simulate playing against)
-		const learner = new Learner(this.n, this.h, eta);
-
-		// Set up the initial history
-		let history = "";
-		for (let i = 0; i < this.h; i++) {
-			history += "0";
-			learner.observeAction(0);
-		}
-
-		// Simulate playing against adversary
-		const adversary = this.generateAdversary();
-		for (let i = this.h; i < adversary.length; i++) {
-			// Consider the probabilities the learner is using to make prediction on this round
-			const probs = learner.getActionProbabilities(history);
-
-			// Observe action
-			const a: number = parseInt(adversary[i]);
-			learner.observeAction(a);
-
-			// Calculate probability of winning
-			pWin.push(probs[a])
-
-			// Update history
-			history = history.substring(1) + a;
-		}
-
-		return pWin;
-	}
-
 	// Helper function to get index of minimum element in given array
-	static _getMinIndex(array: number[]): number {
+	static _argmin(array: number[]): number {
 		let min = array[0];
 		let minIndex = 0;
 
@@ -189,5 +214,28 @@ class Experiment {
 		}
 
 		return minIndex;
+	}
+
+	// Return the cumulative sum of the given array
+	static _cumsum(array: number[]): number[] {
+		let result = [];
+
+    let sum = 0;
+    for (let i = 0; i < array.length; i++) {
+      sum += array[i];
+      result.push(sum);
+    }
+
+    return result;
+	}
+
+	// Return the first index of the element in the array that satisfies the predicate
+	static _argwhere(array: number[], predicate): number {
+		for (let i = 0; i < array.length; i++) {
+			if (predicate(array[i])) {
+				return i;
+			}
+		}
+		return Number.POSITIVE_INFINITY;
 	}
 }

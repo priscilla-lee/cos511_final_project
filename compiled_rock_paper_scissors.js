@@ -171,30 +171,81 @@ var Experiment = /** @class */ (function () {
         }
         return [userSum / count, learnerSum / count];
     };
-    // Run experiments, varying etas according to given range
-    Experiment.prototype.runForRange = function (eta_lo, eta_high, eta_step, input, count) {
-        // List all etas in range
-        var etas = [];
-        for (var i = eta_lo; i < eta_high; i += eta_step) {
-            etas.push(i);
+    // Return expected final scores when simulating play against adversary
+    Experiment.prototype.simulate = function (eta, input) {
+        // Store probabilities of learner winning
+        var learnerWin = [];
+        for (var i = 0; i < this.h; i++) {
+            learnerWin.push(1 / this.n); // First few are random
         }
-        return this.run(etas, input, count);
+        // Create learner (to simulate playing against)
+        var learner = new Learner(this.n, this.h, eta);
+        // Set up the initial history
+        var history = "";
+        for (var i = 0; i < this.h; i++) {
+            history += "0";
+            learner.observeAction(0);
+        }
+        // Simulate playing against adversary
+        for (var i = this.h; i < input.length; i++) {
+            // Consider the probabilities the learner is using to make prediction on this round
+            var probs = learner.getActionProbabilities(history);
+            // Observe action
+            var a = parseInt(input[i]);
+            learner.observeAction(a);
+            // Calculate probability of winning
+            learnerWin.push(probs[a]);
+            // Update history
+            history = history.substring(1) + a;
+        }
+        // Calculate probabilities of adversary winning
+        var userWin = [];
+        for (var i = 0; i < learnerWin.length; i++) {
+            userWin.push(1 - learnerWin[i]);
+        }
+        // Calculate expected scores after each round
+        var userScores = Experiment._cumsum(userWin);
+        var learnerScores = Experiment._cumsum(learnerWin);
+        // Find gameover round T (whoever gets to 100 first)
+        var U = Experiment._argwhere(userScores, function (x) { return x > 99.5; });
+        var L = Experiment._argwhere(learnerScores, function (x) { return x > 99.5; });
+        var T = Math.min(U, L);
+        // Return expected final scores at the end of the game
+        return [userScores[T], learnerScores[T]];
     };
-    // Run experiments for given etas
+    // Run experiments for given etas (count = 0 --> simulate)
     Experiment.prototype.run = function (etas, input, count) {
         var userScores = [];
         var learnerScores = [];
+        var rounds = [];
+        var userPercent = [];
+        var learnerPercent = [];
         // Run all those experiments
         for (var i = 0; i < etas.length; i++) {
-            var results = this.runAverage(etas[i], input, count);
-            userScores.push(results[0]);
-            learnerScores.push(results[1]);
+            var results = [-1, -1];
+            // Compute expectation or compute Monte Carlo average
+            if (count == 0) {
+                results = this.simulate(etas[i], input);
+            }
+            else {
+                results = this.runAverage(etas[i], input, count);
+            }
+            var u = results[0];
+            var l_1 = results[1];
+            userScores.push(u);
+            learnerScores.push(l_1);
+            rounds.push(u + l_1);
+            userPercent.push(u / (u + l_1) * 100);
+            learnerPercent.push(l_1 / (u + l_1) * 100);
         }
         // Print out the results
         console.log("etas = [" + etas.toString() + "]\n" +
             "user = [" + userScores.toString() + "]\n" +
-            "learner = [" + learnerScores.toString() + "]");
-        return [etas, userScores, learnerScores];
+            "learner = [" + learnerScores.toString() + "]\n" +
+            "rounds = [" + rounds.toString() + "]\n" +
+            "user % = [" + userPercent.toString() + "]\n" +
+            "learner % = [" + learnerPercent.toString() + "]");
+        return [etas, userScores, learnerScores, rounds, userPercent, learnerPercent];
     };
     // Generate a predictable, cyclic pattern
     Experiment.prototype.generatePattern = function (pattern) {
@@ -233,7 +284,7 @@ var Experiment = /** @class */ (function () {
         while (adversary.length < 200) {
             // Choose an action from our options
             var options = table[history];
-            var action = Experiment._getMinIndex(options);
+            var action = Experiment._argmin(options);
             // Increment appropriate cell in table
             table[history][action]++;
             // Update adversarial pattern and the history
@@ -242,38 +293,8 @@ var Experiment = /** @class */ (function () {
         }
         return adversary;
     };
-    // Return a list of probabilities that the learner wins on round t
-    Experiment.prototype.simulateAdversary = function (eta) {
-        // Store probabilities (of learner winning)
-        var pWin = [];
-        for (var i = 0; i < this.h; i++) {
-            pWin.push(1 / this.n); // First few are random
-        }
-        // Create learner (to simulate playing against)
-        var learner = new Learner(this.n, this.h, eta);
-        // Set up the initial history
-        var history = "";
-        for (var i = 0; i < this.h; i++) {
-            history += "0";
-            learner.observeAction(0);
-        }
-        // Simulate playing against adversary
-        var adversary = this.generateAdversary();
-        for (var i = this.h; i < adversary.length; i++) {
-            // Consider the probabilities the learner is using to make prediction on this round
-            var probs = learner.getActionProbabilities(history);
-            // Observe action
-            var a = parseInt(adversary[i]);
-            learner.observeAction(a);
-            // Calculate probability of winning
-            pWin.push(probs[a]);
-            // Update history
-            history = history.substring(1) + a;
-        }
-        return pWin;
-    };
     // Helper function to get index of minimum element in given array
-    Experiment._getMinIndex = function (array) {
+    Experiment._argmin = function (array) {
         var min = array[0];
         var minIndex = 0;
         for (var i = 0; i < array.length; i++) {
@@ -283,6 +304,25 @@ var Experiment = /** @class */ (function () {
             }
         }
         return minIndex;
+    };
+    // Return the cumulative sum of the given array
+    Experiment._cumsum = function (array) {
+        var result = [];
+        var sum = 0;
+        for (var i = 0; i < array.length; i++) {
+            sum += array[i];
+            result.push(sum);
+        }
+        return result;
+    };
+    // Return the first index of the element in the array that satisfies the predicate
+    Experiment._argwhere = function (array, predicate) {
+        for (var i = 0; i < array.length; i++) {
+            if (predicate(array[i])) {
+                return i;
+            }
+        }
+        return Number.POSITIVE_INFINITY;
     };
     return Experiment;
 }());
