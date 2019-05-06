@@ -172,7 +172,8 @@ var Experiment = /** @class */ (function () {
         return [userSum / count, learnerSum / count];
     };
     // Return expected final scores when simulating play against adversary
-    Experiment.prototype.simulate = function (eta, input) {
+    Experiment.prototype.simulate = function (eta, input, verbose) {
+        if (verbose === void 0) { verbose = false; }
         // Store probabilities of learner winning
         var learnerWin = [];
         for (var i = 0; i < this.h; i++) {
@@ -210,6 +211,13 @@ var Experiment = /** @class */ (function () {
         var U = Experiment._argwhere(userScores, function (x) { return x > 99.5; });
         var L = Experiment._argwhere(learnerScores, function (x) { return x > 99.5; });
         var T = Math.min(U, L);
+        // Print out the results
+        if (verbose) {
+            console.log("learnerWin = [" + learnerWin.toString() + "]\n" +
+                "userWin = [" + userWin.toString() + "]\n" +
+                "userScores = [" + userScores.toString() + "]\n" +
+                "learnerScores = [" + learnerScores.toString() + "]");
+        }
         // Return expected final scores at the end of the game
         return [userScores[T], learnerScores[T]];
     };

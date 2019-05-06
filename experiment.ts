@@ -54,7 +54,7 @@ class Experiment {
 
 
 	// Return expected final scores when simulating play against adversary
-	public simulate(eta: number, input: string): number[] {
+	public simulate(eta: number, input: string, verbose = false): number[] {
 		// Store probabilities of learner winning
 		let learnerWin = [];
 		for (let i = 0; i < this.h; i++) {
@@ -101,6 +101,14 @@ class Experiment {
 		const U = Experiment._argwhere(userScores, x => x > 99.5);
 		const L = Experiment._argwhere(learnerScores, x => x > 99.5);
 		const T = Math.min(U, L);
+
+		// Print out the results
+		if (verbose) {
+			console.log("learnerWin = [" + learnerWin.toString() + "]\n" + 
+									"userWin = [" + userWin.toString() + "]\n" +
+									"userScores = [" + userScores.toString() + "]\n" +
+									"learnerScores = [" + learnerScores.toString() + "]");
+		}
 
 		// Return expected final scores at the end of the game
 		return [userScores[T], learnerScores[T]];
