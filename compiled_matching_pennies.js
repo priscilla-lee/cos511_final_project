@@ -1,3 +1,8 @@
+/********************************************************************************
+ *
+ *
+ *
+ *******************************************************************************/
 var ProgressBar = /** @class */ (function () {
     function ProgressBar(POV, color) {
         var canvas = document.getElementById(POV + "Canvas");
@@ -13,6 +18,11 @@ var ProgressBar = /** @class */ (function () {
     };
     return ProgressBar;
 }());
+/********************************************************************************
+ *
+ *
+ *
+ *******************************************************************************/
 var Expert = /** @class */ (function () {
     // Construct expert i
     function Expert(i, n_actions, history_length) {
@@ -30,6 +40,11 @@ var Expert = /** @class */ (function () {
     };
     return Expert;
 }());
+/********************************************************************************
+ * Learner: Implements the multiplicative weights algorithm.
+ *          Can predict actions, observe actions, and update weights.
+ *          Generalizes to n-strategy games, using context-trees with history h.
+ *******************************************************************************/
 var Learner = /** @class */ (function () {
     // Constructor: number of actions (n), history/context length (h), learning rate (eta)
     function Learner(n, h, eta) {
@@ -47,11 +62,41 @@ var Learner = /** @class */ (function () {
             this.weights.push(1 / num_experts); // uniform probability
         }
     }
-    // Predict according to algorithm
+    // Helper method to get the history (h most recent actions)
+    Learner.prototype._getHistory = function () {
+        return this.actions.join("").substring(this.actions.length - this.h);
+    };
+    // Predict according to weighted context-tree experts
     Learner.prototype.predict = function () {
-        var p = this._predictExpertly();
+        // Predict completely randomly if not enough history
+        var p = this._predictRandomly();
+        // If enough history, predict based on weighted experts
+        if (this.actions.length >= this.h) {
+            // Choose expert randomly (according to weights)
+            var index = this._discrete(this.weights);
+            var expert = this.experts[index];
+            // Return the prediction of the chosen expert, given the history
+            p = expert.predict(this._getHistory());
+        }
+        // Add to list of learner predictions
         this.predictions.push(p);
         return p;
+    };
+    // Update according to multiplicative weights algorithm (page 156 in textbook)
+    Learner.prototype._updateExpertWeights = function (action) {
+        // If we don't have enough history, ignore
+        if (this.actions.length < this.h) {
+            return;
+        }
+        // Update weights: (only) penalize experts that made mistakes
+        for (var i = 0; i < this.weights.length; i++) {
+            if (this.experts[i].predict(this._getHistory()) != action) {
+                // bigger eta --> harsher penalty
+                this.weights[i] = this.weights[i] * Math.pow(Math.E, -this.eta);
+            }
+        }
+        // Finally, normalize weights
+        this.weights = this._normalize(this.weights);
     };
     // Observe user action, update weights
     Learner.prototype.observeAction = function (action) {
@@ -59,7 +104,7 @@ var Learner = /** @class */ (function () {
         this.actions.push(action);
     };
     // Get the learner's current probabilities of s
-    Learner.prototype.getProbabilitiesOfActions = function (history) {
+    Learner.prototype.getActionProbabilities = function (history) {
         var probs = [];
         for (var i = 0; i < this.n; i++) {
             probs.push(0);
@@ -71,80 +116,47 @@ var Learner = /** @class */ (function () {
         }
         return probs;
     };
-    /* -------------------------------------------------------
-                        Updating algorithms
-    ------------------------------------------------------- */
-    // Multiplicative weights with context tree experts (page 156 in textbook)
-    Learner.prototype._updateExpertWeights = function (action) {
-        // If we don't have enough history, ignore
-        if (this.actions.length < this.h) {
-            return;
-        }
-        // Get h most recent actions (history)
-        var history = this.actions.join("").substring(this.actions.length - this.h);
-        // Update weights: (only) penalize experts that made mistakes
-        for (var i = 0; i < this.weights.length; i++) {
-            if (this.experts[i].predict(history) != action) {
-                // bigger eta --> harsher penalty
-                this.weights[i] = this.weights[i] * Math.pow(Math.E, -this.eta);
-            }
-        }
-        // Finally, normalize weights
-        this.weights = this._normalize(this.weights);
-    };
-    /* -------------------------------------------------------
-                        Prediction algorithms
-    ------------------------------------------------------- */
-    // Expert prediction: choose prediction of expert according to weights
-    Learner.prototype._predictExpertly = function () {
-        // If we don't have enough history, just predict randomly
-        if (this.actions.length < this.h) {
-            return this._predictRandomly();
-        }
-        // Choose expert randomly (according to weights)
-        var index = this._discrete(this.weights);
-        var expert = this.experts[index];
-        // Get h most recent actions (history)
-        var history = this.actions.join("").substring(this.actions.length - this.h);
-        // Return the prediction of the chosen expert, given the history
-        return expert.predict(history);
-    };
-    // Random prediction: 1/2 heads, 1/2 tails
+    // Random prediction: uniformly (e.g. 1/2 heads, 1/2 tails)
     Learner.prototype._predictRandomly = function () {
-        return +!(Math.random() < 0.5); // true --> 0, false --> 1
-    };
-    /* -------------------------------------------------------
-          Helper functions (with probability distributions)
-    ------------------------------------------------------- */
-    // Randomly choose an index given array of probabilities
-    Learner.prototype._discrete = function (probabilities) {
-        // Step 0: make a defensive copy!
-        var copy = [];
-        for (var i = 0; i < probabilities.length; i++) {
-            copy.push(probabilities[i]);
+        // Construct uniform weights
+        var uniform = [];
+        for (var i = 0; i < this.n; i++) {
+            uniform.push(1);
         }
+        // Predict according to that uniform discrete distribution
+        return this._discrete(uniform);
+    };
+    // Randomly choose an index given array of probabilities
+    Learner.prototype._discrete = function (weights) {
+        // Get probability distribution p
+        var p = this._normalize(weights);
         // Step 1: cumulative sum
         var sum = 0;
-        for (var i = 0; i < copy.length; i++) {
-            sum += copy[i];
-            copy[i] = sum;
+        for (var i = 0; i < p.length; i++) {
+            sum += p[i];
+            p[i] = sum;
         }
         // Step 2: choose a random index
         var rand = Math.random();
-        for (var i = 0; i < copy.length; i++) {
-            if (rand < copy[i]) {
+        for (var i = 0; i < p.length; i++) {
+            if (rand < p[i]) {
                 return i;
             }
         }
-        return copy.length - 1;
+        return p.length - 1;
     };
-    // Normalize an input array of numbers (sum to 1)
-    Learner.prototype._normalize = function (probabilities) {
-        var sum = probabilities.reduce(function (a, b) { return a + b; }, 0);
-        return probabilities.map(function (p) { return p / sum; });
+    // Normalize array to a probability distribution (sum to 1)
+    Learner.prototype._normalize = function (weights) {
+        var sum = weights.reduce(function (a, b) { return a + b; }, 0);
+        return weights.map(function (p) { return p / sum; });
     };
     return Learner;
 }());
+/********************************************************************************
+ *
+ *
+ *
+ *******************************************************************************/
 // HTML document elements
 var uPenny = document.getElementById("userPenny");
 var lPenny = document.getElementById("learnerPenny");
@@ -221,6 +233,11 @@ window.onkeydown = function (e) {
         lPenny.setAttribute("src", "tails_dummy.jpg");
     }
 };
+/********************************************************************************
+ *
+ *
+ *
+ *******************************************************************************/
 var Experiment = /** @class */ (function () {
     // Experiment for an n-strategy game, using context trees of given depth
     function Experiment(num_actions, history_length) {
@@ -356,7 +373,7 @@ var Experiment = /** @class */ (function () {
         var adversary = this.generateAdversary();
         for (var i = this.history_length; i < adversary.length; i++) {
             // Consider the probabilities the learner is using to make prediction on this round
-            var probs = learner.getProbabilitiesOfActions(history);
+            var probs = learner.getActionProbabilities(history);
             // Observe action
             var a = parseInt(adversary[i]);
             learner.observeAction(a);

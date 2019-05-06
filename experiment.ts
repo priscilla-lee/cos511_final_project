@@ -168,7 +168,7 @@ class Experiment {
 		const adversary = this.generateAdversary();
 		for (let i = this.history_length; i < adversary.length; i++) {
 			// Consider the probabilities the learner is using to make prediction on this round
-			const probs = learner.getProbabilitiesOfActions(history);
+			const probs = learner.getActionProbabilities(history);
 
 			// Observe action
 			const a: number = parseInt(adversary[i]);

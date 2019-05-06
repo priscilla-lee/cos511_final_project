@@ -1,9 +1,9 @@
 /******************************************************************************** 
- * 
- * 
- *
+ * Learner: Implements the multiplicative weights algorithm.
+ *          Can predict actions, observe actions, and update weights.
+ *          Generalizes to n-strategy games, using context-trees with history h.
  *******************************************************************************/
- 
+
 class Learner {
   public actions: number[]; // 0 (heads) or 1 (tails)
   public predictions: number[]; // 0 or 1
@@ -16,6 +16,9 @@ class Learner {
   // Context tree experts and their weights
   public experts: Expert[];
   public weights: number[];
+
+  // Uniform weights (pre-computed to save time)
+  private _uniform: number[];
 
   // Constructor: number of actions (n), history/context length (h), learning rate (eta)
   public constructor(n: number, h: number, eta: number) {
@@ -35,23 +38,62 @@ class Learner {
       this.experts.push(new Expert(i, n, h));
       this.weights.push(1/num_experts); // uniform probability
     }
+
+    // Construct uniform weights (pre-computed for computational efficiency)
+    this._uniform = [];
+    for (let i = 0; i < this.n; i++) {
+      this._uniform.push(1);
+    }
   }
 
-  // Predict according to algorithm
+  // Helper method to get the history (h most recent actions)
+  private _getHistory(): string {
+    return this.actions.join("").substring(this.actions.length-this.h);
+  }
+
+  // Predict according to weighted context-tree experts
   public predict(): number {
-    const p = this._predictExpertly(); 
+    // Predict completely randomly if not enough history
+    let p = this._predictRandomly();
+
+    // If enough history, predict based on weighted experts
+    if (this.actions.length >= this.h) { 
+      // Choose expert randomly (according to weights)
+      const index = this._discrete(this.weights);
+      const expert = this.experts[index];
+
+      // Return the prediction of the chosen expert, given the history
+      p = expert.predict(this._getHistory());
+    }
+
+    // Add to list of learner predictions
     this.predictions.push(p);
     return p;
   }
 
-  // Observe user action, update weights
+  // Observe user action, and update weights according to the 
+  // multiplicative weights algorithm (page 156 in textbook)
   public observeAction(action: number): void {
-    this._updateExpertWeights(action);
+    // If we don't have enough history, ignore
+    if (this.actions.length < this.h) { return; }
+
+    // Update weights: (only) penalize experts that made mistakes
+    for (let i = 0; i < this.weights.length; i++) {
+      if (this.experts[i].predict(this._getHistory()) != action) {
+        // bigger eta --> harsher penalty
+        this.weights[i] = this.weights[i] * Math.pow(Math.E, -this.eta);
+      }
+    }
+
+    // Finally, normalize weights
+    this.weights = this._normalize(this.weights);
+
+    // Add to list of user actions
     this.actions.push(action);
   }
 
   // Get the learner's current probabilities of s
-  public getProbabilitiesOfActions(history: string): number[] {
+  public getActionProbabilities(history: string): number[] {
     let probs = [];
     for (let i = 0; i < this.n; i++) {
       probs.push(0);
@@ -66,88 +108,35 @@ class Learner {
     return probs;
   }
 
-  /* -------------------------------------------------------
-                      Updating algorithms
-  ------------------------------------------------------- */
-
-  // Multiplicative weights with context tree experts (page 156 in textbook)
-  private _updateExpertWeights(action: number): void {
-    // If we don't have enough history, ignore
-    if (this.actions.length < this.h) { return; }
-
-    // Get h most recent actions (history)
-    const history = this.actions.join("").substring(this.actions.length-this.h);
-
-    // Update weights: (only) penalize experts that made mistakes
-    for (let i = 0; i < this.weights.length; i++) {
-      if (this.experts[i].predict(history) != action) {
-        // bigger eta --> harsher penalty
-        this.weights[i] = this.weights[i] * Math.pow(Math.E, -this.eta);
-      }
-    }
-
-    // Finally, normalize weights
-    this.weights = this._normalize(this.weights);
-  }
-
-  /* -------------------------------------------------------
-                      Prediction algorithms
-  ------------------------------------------------------- */
-
-  // Expert prediction: choose prediction of expert according to weights
-  private _predictExpertly(): number {
-    // If we don't have enough history, just predict randomly
-    if (this.actions.length < this.h) { 
-      return this._predictRandomly();
-    }
-
-    // Choose expert randomly (according to weights)
-    const index = this._discrete(this.weights);
-    const expert = this.experts[index];
-
-    // Get h most recent actions (history)
-    const history = this.actions.join("").substring(this.actions.length-this.h);
-    
-    // Return the prediction of the chosen expert, given the history
-    return expert.predict(history);
-  }
-
-  // Random prediction: 1/2 heads, 1/2 tails
+  // Random prediction: uniformly (e.g. 1/2 heads, 1/2 tails)
   private _predictRandomly(): number {
-    return +!(Math.random() < 0.5); // true --> 0, false --> 1
+    return this._discrete(this._uniform);
   }
-
-  /* -------------------------------------------------------
-        Helper functions (with probability distributions)
-  ------------------------------------------------------- */
 
   // Randomly choose an index given array of probabilities
-  private _discrete(probabilities: number[]): number {
-    // Step 0: make a defensive copy!
-    let copy = [];
-    for (let i = 0; i < probabilities.length; i++) {
-      copy.push(probabilities[i]);
-    }
+  private _discrete(weights: number[]): number {
+    // Get probability distribution p
+    let p = this._normalize(weights);
 
     // Step 1: cumulative sum
     let sum = 0;
-    for (let i = 0; i < copy.length; i++) {
-      sum += copy[i];
-      copy[i] = sum;
+    for (let i = 0; i < p.length; i++) {
+      sum += p[i];
+      p[i] = sum;
     }
 
     // Step 2: choose a random index
     const rand = Math.random();
-    for (let i = 0; i < copy.length; i++) {
-      if (rand < copy[i]) {
+    for (let i = 0; i < p.length; i++) {
+      if (rand < p[i]) {
         return i;
       }
-    } return copy.length -1;
+    } return p.length -1;
   }
 
-  // Normalize an input array of numbers (sum to 1)
-  private _normalize(probabilities: number[]): number[] {
-    const sum = probabilities.reduce((a, b) => a + b, 0);
-    return probabilities.map(p => p / sum);
+  // Normalize array to a probability distribution (sum to 1)
+  private _normalize(weights: number[]): number[] {
+    const sum = weights.reduce((a, b) => a + b, 0);
+    return weights.map(p => p / sum);
   }
 }
